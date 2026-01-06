@@ -13,7 +13,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns(
                         "http://localhost:3000",
                         "https://*.idx.google.com",   // Google IDX 프리뷰 주소 허용
-                        "https://*.google.com"        // Google AI Studio 관련 도메인 허용
+                        "https://*.google.com"   ,     // Google AI Studio 관련 도메인 허용
+                        "https://*.usercontent.goog"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE")
                 .allowCredentials(true);
