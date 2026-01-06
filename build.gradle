@@ -17,6 +17,9 @@ java {
 repositories {
 	mavenCentral()
 	google()
+	// 공식 서버가 막힐 때를 대비한 미러 사이트들 (안정성 확보)
+	maven { url "https://repo1.maven.org/maven2/" }
+	maven { url "https://maven.aliyun.com/repository/public" }
 }
 
 dependencies {
