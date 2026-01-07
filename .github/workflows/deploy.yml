@@ -44,6 +44,14 @@ jobs:
         script: |
           # 기존 실행 중인 서버 종료
           fuser -k 8080/tcp || true
+
+          # 기존 JAR 파일 삭제 (중복 실행 방지)
+          # 새로 전송된 JAR만 남기기 위해 기존 파일을 지워줍니다.
+          rm -f /home/ubuntu/dugout/*.jar 
+
+          # 전송된 폴더에서 실행 폴더로 JAR 이동
+          cp /home/ubuntu/dugout/tars/*.jar /home/ubuntu/dugout/app.jar
+          
           # 새 서버 실행 (환경 변수 주입)
           nohup /usr/bin/java -jar /home/ubuntu/dugout/tars/*.jar \
             --spring.datasource.url=${{ secrets.DB_URL }} \
