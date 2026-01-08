@@ -38,6 +38,18 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-security' // 암호화용
+
+
+	// AWS SDK v2 BOM
+	implementation platform('software.amazon.awssdk:bom:2.29.1')
+
+	// Athena 서비스 라이브러리
+	implementation 'software.amazon.awssdk:athena'
+
+	// S3 서비스 라이브러리 - 쿼리 결과 등을 핸들링할 때 필요
+	implementation 'software.amazon.awssdk:s3'
+
+
 }
 
 tasks.named('test') {
