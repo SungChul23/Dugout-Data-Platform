@@ -60,4 +60,6 @@ jobs:
             --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
             --aws.athena.region=${{ secrets.AWS_ATHENA_REGION }} \
             --aws.athena.database=${{ secrets.AWS_ATHENA_DATABASE }} \
-            --aws.athena.output-location=${{ secrets.AWS_ATHENA_OUTPUT_LOCATION }} > /home/ubuntu/dugout/app.log 2>&1 &
+            --aws.athena.output-location=${{ secrets.AWS_ATHENA_OUTPUT_LOCATION }} \
+            --naver.api.client-id=${{ secrets.NAVER_CLIENT_ID }} \
+            --naver.api.client-secret=${{ secrets.NAVER_CLIENT_SECRET }} > /home/ubuntu/dugout/app.log 2>&1 &
