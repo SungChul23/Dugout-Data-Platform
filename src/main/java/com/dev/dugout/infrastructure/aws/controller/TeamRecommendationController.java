@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 @RequestMapping("/api/v1/fanexperience")
 @RequiredArgsConstructor
-public class FanExperienceController {
+public class TeamRecommendationController {
 
     private final RecommendationService recommendationService;
 
