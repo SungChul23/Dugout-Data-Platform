@@ -23,6 +23,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/members/**").permitAll()
                         .requestMatchers("/api/v1/fanexperience/**").permitAll()
+                        .requestMatchers("/api/v1/news/**").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();
