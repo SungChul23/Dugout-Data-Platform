@@ -52,8 +52,12 @@ jobs:
           # 전송된 폴더에서 실행 폴더로 JAR 이동
           cp /home/ubuntu/dugout/tars/*.jar /home/ubuntu/dugout/app.jar
           
-          # 새 서버 실행 (환경 변수 주입)
-          nohup /usr/bin/java -jar /home/ubuntu/dugout/tars/*.jar \
+          # 3. 새 서버 실행 (DB + Athena 환경 변수 주입)
+          # 여기서 ${{ secrets.XXX }} 부분은 깃허브 저장소에 설정한 이름과 일치해야 합니다.
+          nohup /usr/bin/java -jar /home/ubuntu/dugout/app.jar \
             --spring.datasource.url=${{ secrets.DB_URL }} \
             --spring.datasource.username=${{ secrets.DB_USERNAME }} \
-            --spring.datasource.password=${{ secrets.DB_PASSWORD }} > /home/ubuntu/dugout/app.log 2>&1 &
+            --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
+            --aws.athena.region=${{ secrets.AWS_ATHENA_REGION }} \
+            --aws.athena.database=${{ secrets.AWS_ATHENA_DATABASE }} \
+            --aws.athena.output-location=${{ secrets.AWS_ATHENA_OUTPUT_LOCATION }} > /home/ubuntu/dugout/app.log 2>&1 &
