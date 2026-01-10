@@ -1,6 +1,7 @@
 package com.dev.dugout.infrastructure.aws.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BedrockService {
 
     private final BedrockRuntimeClient client = BedrockRuntimeClient.builder()
@@ -57,7 +59,9 @@ public class BedrockService {
             JSONObject resp = new JSONObject(response.body().asUtf8String());
             return resp.getJSONArray("content").getJSONObject(0).getString("text");
         } catch (Exception e) {
-            return "와우! 성철 님과 정말 잘 어울리는 팀을 찾았어요. 데이터가 증명하는 이 팀의 매력을 직접 확인해보세요! ⚾️";
+            log.error(">>>> [BEDROCK ERROR] 원인: {}", e.getMessage()); // 로그에 에러 찍기
+            e.printStackTrace(); // 상세 스택트레이스 출력
+            return "AI 분석 실패 원인: " + e.getMessage();
         }
     }
 }
