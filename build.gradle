@@ -39,6 +39,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-security' // 암호화용
 
+	// JSON 처리를 위한 라이브러리
+	implementation 'org.json:json:20231013'
+
 
 	// AWS SDK v2 BOM
 	implementation platform('software.amazon.awssdk:bom:2.29.1')
