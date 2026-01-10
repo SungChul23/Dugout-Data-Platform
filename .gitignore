@@ -37,4 +37,6 @@ out/
 .vscode/
 
 # 민감한 설정 정보
-application-secret.properties
+# application.properties 전체 제외
+src/main/resources/application.properties
+src/main/resources/application-secret.properties
