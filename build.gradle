@@ -49,6 +49,9 @@ dependencies {
 	// S3 서비스 라이브러리 - 쿼리 결과 등을 핸들링할 때 필요
 	implementation 'software.amazon.awssdk:s3'
 
+	// AWS SDK v2 Bedrock Runtime
+	implementation 'software.amazon.awssdk:bedrockruntime:2.25.15'
+
 
 }
 
