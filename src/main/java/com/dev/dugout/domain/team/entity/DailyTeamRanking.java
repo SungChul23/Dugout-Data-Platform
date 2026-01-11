@@ -3,6 +3,7 @@ package com.dev.dugout.domain.team.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -34,7 +35,7 @@ public class DailyTeamRanking {
     private Integer draws;         // 무
 
     @Column(precision = 5, scale = 3)
-    private Double winRate;        // 승률
+    private BigDecimal winRate;        // 승률
 
     private Double gamesBehind;    // 게임차
     private String recent10Games;  // 최근 10경기 (예: 5승1무4패)
