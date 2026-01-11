@@ -1,8 +1,8 @@
 package com.dev.dugout.infrastructure.aws.controller;
 
 
-import com.dev.dugout.infrastructure.aws.dto.SurveyRequest;
-import com.dev.dugout.infrastructure.aws.dto.TeamRecommendationResponse;
+import com.dev.dugout.infrastructure.aws.dto.SurveyRequestDto;
+import com.dev.dugout.infrastructure.aws.dto.TeamRecommendationResponseDto;
 import com.dev.dugout.infrastructure.aws.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +19,8 @@ public class TeamRecommendationController {
     private final RecommendationService recommendationService;
 
     @PostMapping("/match-team")
-    public ResponseEntity<TeamRecommendationResponse> matchTeam
-            (@RequestBody SurveyRequest request){
+    public ResponseEntity<TeamRecommendationResponseDto> matchTeam
+            (@RequestBody SurveyRequestDto request){
         return ResponseEntity.ok(recommendationService.getMatchTeam(request));
     }
 }

@@ -1,7 +1,7 @@
 package com.dev.dugout.infrastructure.aws.service;
 
-import com.dev.dugout.infrastructure.aws.dto.SurveyRequest;
-import com.dev.dugout.infrastructure.aws.dto.TeamRecommendationResponse;
+import com.dev.dugout.infrastructure.aws.dto.SurveyRequestDto;
+import com.dev.dugout.infrastructure.aws.dto.TeamRecommendationResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +34,7 @@ public class RecommendationService {
             Map.entry("11", "현대 유니콘스")
     );
 
-    public TeamRecommendationResponse getMatchTeam(SurveyRequest request) {
+    public TeamRecommendationResponseDto getMatchTeam(SurveyRequestDto request) {
         // [LOG] 분석 시작 및 수신 데이터 확인
         log.info(">>>> [ANALYSIS START] KBO 팀 추천 엔진 가동 (기준 연도: {} 이후)", request.getStartYear());
         log.info(">>>> [USER PREFERENCE] {}", request.getPreferenceSummary());
@@ -68,7 +68,7 @@ public class RecommendationService {
         return executeAthenaQuery(sql, request.getPreferenceSummary());
     }
 
-    private TeamRecommendationResponse executeAthenaQuery(String sql, String userPref) {
+    private TeamRecommendationResponseDto executeAthenaQuery(String sql, String userPref) {
         StartQueryExecutionRequest startRequest = StartQueryExecutionRequest.builder()
                 .queryString(sql)
                 .queryExecutionContext(QueryExecutionContext.builder().database(database).build())
@@ -109,7 +109,7 @@ public class RecommendationService {
             String aiReason = bedrockService.generateReason(fullTeamName, year, statsSummary, userPref);
             log.info(">>>> [BEDROCK RESPONSE] 생성 완료");
 
-            return TeamRecommendationResponse.builder()
+            return TeamRecommendationResponseDto.builder()
                     .year(year)
                     .originalName(dbTeamName)
                     .teamName(fullTeamName)

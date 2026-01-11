@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 @Getter
 @Setter
-public class SurveyRequest {
+public class SurveyRequestDto {
     private int startYear; // 시작 연도
     private Map<String, Integer> preferences; // q1:홈런, q2:타율, q3:방어율, q4:세이브/홀드, q5:OPS, q6:승률
 

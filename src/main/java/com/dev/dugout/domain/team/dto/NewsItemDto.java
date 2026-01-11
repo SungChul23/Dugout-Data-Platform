@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class NewsItem {
+public class NewsItemDto {
     private String title;
     private String originallink;
     private String link;

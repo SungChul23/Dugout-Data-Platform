@@ -9,5 +9,5 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class NewsResponseDto {
-    private List<NewsItem> items = new ArrayList<>(); // null 대신 빈 리스트로 초기화
+    private List<NewsItemDto> items = new ArrayList<>(); // null 대신 빈 리스트로 초기화
 }
