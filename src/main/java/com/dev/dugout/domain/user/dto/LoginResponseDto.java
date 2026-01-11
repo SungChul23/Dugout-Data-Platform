@@ -6,8 +6,9 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class LoginResponseDto {
-    private String nickname;
-    private String favoriteTeam;
+
     private String accessToken;
     private String refreshToken;
+    private String nickname;
+    private String favoriteTeam;
 }
