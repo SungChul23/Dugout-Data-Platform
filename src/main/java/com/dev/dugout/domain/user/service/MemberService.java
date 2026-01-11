@@ -46,26 +46,37 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public NicknameCheckResponseDto checkNicknameAvailability(String nickname) {
-        // 1. 길이 검사 (2자 미만 또는 10자 초과)
-        if (nickname == null || nickname.trim().length() < 2 || nickname.trim().length() > 10) {
+        // 1. 기본 유효성 및 길이 검사 (Trim 후 검사)
+        if (nickname == null || nickname.trim().isEmpty()) {
+            return new NicknameCheckResponseDto(false, "닉네임을 입력해주세요.");
+        }
+
+        String trimmedNickname = nickname.trim();
+        if (trimmedNickname.length() < 2 || trimmedNickname.length() > 10) {
             return new NicknameCheckResponseDto(false, "닉네임은 2자 이상 10자 이하로 입력해주세요.");
         }
 
-        // 2. 금칙어/욕설 필터링 (DB에서 조회)
-        // 데이터 엔지니어 팁: 금칙어가 많아지면 findAll() 결과를 캐싱 가능
+        // 2. 금칙어 필터링을 위한 전처리 (Normalization)
+        // - 모든 공백 제거 (\\s)
+        // - 한글, 영문, 숫자 제외한 모든 특수문자 제거 ([^a-zA-Z0-9가-힣])
+        String cleanNickname = trimmedNickname.replaceAll("\\s", "")
+                .replaceAll("[^a-zA-Z0-9가-힣]", "");
+
+        // 3. 금칙어/욕설 필터링 (DB에서 조회)
         List<ForbiddenWord> forbiddenWords = forbiddenWordRepository.findAll();
         for (ForbiddenWord fw : forbiddenWords) {
-            if (nickname.contains(fw.getWord())) {
-                return new NicknameCheckResponseDto(false, "사용할 수 없는 단어가 포함되어 있습니다: " + fw.getWord());
+            String forbiddenWord = fw.getWord();
+
+            if (cleanNickname.contains(forbiddenWord)) {
+                return new NicknameCheckResponseDto(false, "사용할 수 없는 단어가 포함되어 있습니다: " + forbiddenWord);
             }
         }
-        // 3. 중복 확인
-        boolean exists = userRepository.existsByNickname(nickname);
+
+        // 4. 중복 확인 (원본 nickname 대신 중복을 더 엄격히 막으려면 cleanNickname으로 체크할 수도 있음)
+        boolean exists = userRepository.existsByNickname(trimmedNickname);
         if (exists) {
             return new NicknameCheckResponseDto(false, "이미 사용 중인 닉네임입니다.");
         }
-
-        // 모든 통과 시
         return new NicknameCheckResponseDto(true, "사용 가능한 닉네임입니다.");
     }
 
