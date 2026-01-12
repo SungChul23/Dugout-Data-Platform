@@ -17,4 +17,10 @@ public class ForbiddenWord {
 
     @Column(nullable = false, unique = true)
     private String word; // 금칙어 단어
+
+    private String category;
+
+    private String severity;
+
+    private String note;
 }
