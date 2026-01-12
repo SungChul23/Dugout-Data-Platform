@@ -73,22 +73,28 @@ public class MemberService {
             return new NicknameCheckResponseDto(false, "닉네임은 2자 이상 10자 이하로 입력해주세요.");
         }
 
-        // 2. 금칙어 필터링을 위한 전처리
-        String cleanNickname = trimmedNickname.replaceAll("\\s", "")
-                .replaceAll("[^a-zA-Z0-9가-힣]", "");
+        // 2. 숫자 및 특수문자 차단 (정규표현식)
+        // ^[a-zA-Z가-힣]*$ : 시작부터 끝까지 영문 대소문자와 한글만 허용함
+        if (!trimmedNickname.matches("^[a-zA-Z가-힣]*$")) {
+            return new NicknameCheckResponseDto(false, "닉네임은 한글과 영문만 가능하며, 숫자나 특수문자는 사용할 수 없습니다.");
+        }
 
-        // 3. 금칙어 필터링 (DB 조회 대신 메모리 캐시 사용)
+        // 3. 금칙어 필터링을 위한 전처리 (공백 제거)
+        String cleanNickname = trimmedNickname.replaceAll("\\s", "");
+
+        // 4. 금칙어/욕설 필터링 (메모리 캐시 사용)
         for (String forbiddenWord : forbiddenWordCache) {
             if (cleanNickname.contains(forbiddenWord)) {
                 return new NicknameCheckResponseDto(false, "사용할 수 없는 단어가 포함되어 있습니다.");
             }
         }
 
-        // 4. 중복 확인
+        // 5. 중복 확인
         boolean exists = userRepository.existsByNickname(trimmedNickname);
         if (exists) {
             return new NicknameCheckResponseDto(false, "이미 사용 중인 닉네임입니다.");
         }
+
         return new NicknameCheckResponseDto(true, "사용 가능한 닉네임입니다.");
     }
 
