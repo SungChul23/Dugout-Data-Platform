@@ -19,10 +19,8 @@ public class Team {
 
     @Id
     private long id;
-
     private String name;
     private String city;
     private String stadiumName; //"현재 주력 홈구장" - 추후 경기장이 수정 될 수도 있으니
-
 
 }

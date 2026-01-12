@@ -1,11 +1,13 @@
 package com.dev.dugout.domain.user.service;
 
+import com.dev.dugout.domain.team.entity.Team;
 import com.dev.dugout.domain.user.dto.*;
 import com.dev.dugout.domain.user.entity.ForbiddenWord;
 import com.dev.dugout.domain.user.entity.RefreshToken;
 import com.dev.dugout.domain.user.entity.User;
 import com.dev.dugout.domain.user.repository.ForbiddenWordRepository;
 import com.dev.dugout.domain.user.repository.RefreshTokenRepository;
+import com.dev.dugout.domain.user.repository.TeamRepository;
 import com.dev.dugout.domain.user.repository.UserRepository;
 import com.dev.dugout.global.jwt.JwtTokenProvider;
 import jakarta.annotation.PostConstruct;
@@ -28,6 +30,7 @@ public class MemberService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final ForbiddenWordRepository forbiddenWordRepository;
+    private final TeamRepository teamRepository;
 
     // 금칙어를 저장할 메모리 캐시 (멀티쓰레드 환경을 고려해 CopyOnWriteArrayList 사용 가능)
     private List<String> forbiddenWordCache;
@@ -48,13 +51,17 @@ public class MemberService {
 
     @Transactional
     public LoginResponseDto signup(SignupRequestDto requestDto) {
+
+        // 프런트에서 보낸 팀명(ex - "삼성 라이온즈")으로 DB에서 팀 엔티티를 조회.
+        Team team = teamRepository.findByName(requestDto.getFavoriteTeam())
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 팀명입니다."));
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
 
         User user = User.builder()
                 .loginId(requestDto.getEmail())
                 .password(encodedPassword)
                 .nickname(requestDto.getNickname())
-                .favoriteTeam(requestDto.getFavoriteTeam())
+                .favoriteTeam(team)
                 .build();
 
         userRepository.save(user);
@@ -123,7 +130,6 @@ public class MemberService {
                             refreshTokenRepository.save(newToken);
                         }
                 );
-
-        return new LoginResponseDto(accessToken, refreshToken, user.getNickname(), user.getFavoriteTeam());
+        return new LoginResponseDto(accessToken, refreshToken, user.getNickname(), user.getFavoriteTeam().getName());
     }
 }
