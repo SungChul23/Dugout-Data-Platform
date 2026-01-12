@@ -42,4 +42,11 @@ public class MemberController {
             return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
         }
     }
+
+    // 관리자 용
+    @GetMapping("/refresh-forbidden-words")
+    public ResponseEntity<String> refreshWords() {
+        memberService.refreshForbiddenWords();
+        return ResponseEntity.ok("금칙어 캐시가 성공적으로 갱신되었습니다!");
+    }
 }
