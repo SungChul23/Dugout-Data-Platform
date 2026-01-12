@@ -8,7 +8,9 @@ import com.dev.dugout.domain.user.repository.ForbiddenWordRepository;
 import com.dev.dugout.domain.user.repository.RefreshTokenRepository;
 import com.dev.dugout.domain.user.repository.UserRepository;
 import com.dev.dugout.global.jwt.JwtTokenProvider;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MemberService {
 
     private final UserRepository userRepository;
@@ -26,8 +29,22 @@ public class MemberService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final ForbiddenWordRepository forbiddenWordRepository;
 
-    // 금칙어 리스트 (실무에서는 DB나 Redis에서 관리하지만, 현재는 상수로 정의)
-    private static final List<String> FORBIDDEN_WORDS = Arrays.asList("운영자", "admin", "더그아웃", "관리자", "욕설1", "비속어2");
+    // 금칙어를 저장할 메모리 캐시 (멀티쓰레드 환경을 고려해 CopyOnWriteArrayList 사용 가능)
+    private List<String> forbiddenWordCache;
+
+    @PostConstruct //Bean이 “쓸 준비 완료” 되자마자 한 번 실행되는 초기화 훅
+    public void initForbiddenWords() {
+        List<ForbiddenWord> allWords = forbiddenWordRepository.findAll();
+        this.forbiddenWordCache = allWords.stream()
+                .map(ForbiddenWord::getWord)
+                .toList();
+        log.info(">>>> [Cache] 금칙어 {}건이 메모리에 로드되었습니다.", forbiddenWordCache.size());
+    }
+
+    //금칙어 리스트를 강제로 갱신하고 싶을 때 호출하는 메서드 (나중에 괸라자 전용 페이지에서 사용 할 예정)
+    public void refreshForbiddenWords() {
+        initForbiddenWords();
+    }
 
     @Transactional
     public LoginResponseDto signup(SignupRequestDto requestDto) {
@@ -46,7 +63,7 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public NicknameCheckResponseDto checkNicknameAvailability(String nickname) {
-        // 1. 기본 유효성 및 길이 검사 (Trim 후 검사)
+        // 1. 기본 유효성 및 길이 검사
         if (nickname == null || nickname.trim().isEmpty()) {
             return new NicknameCheckResponseDto(false, "닉네임을 입력해주세요.");
         }
@@ -56,23 +73,18 @@ public class MemberService {
             return new NicknameCheckResponseDto(false, "닉네임은 2자 이상 10자 이하로 입력해주세요.");
         }
 
-        // 2. 금칙어 필터링을 위한 전처리 (Normalization)
-        // - 모든 공백 제거 (\\s)
-        // - 한글, 영문, 숫자 제외한 모든 특수문자 제거 ([^a-zA-Z0-9가-힣])
+        // 2. 금칙어 필터링을 위한 전처리
         String cleanNickname = trimmedNickname.replaceAll("\\s", "")
                 .replaceAll("[^a-zA-Z0-9가-힣]", "");
 
-        // 3. 금칙어/욕설 필터링 (DB에서 조회)
-        List<ForbiddenWord> forbiddenWords = forbiddenWordRepository.findAll();
-        for (ForbiddenWord fw : forbiddenWords) {
-            String forbiddenWord = fw.getWord();
-
+        // 3. 금칙어 필터링 (DB 조회 대신 메모리 캐시 사용)
+        for (String forbiddenWord : forbiddenWordCache) {
             if (cleanNickname.contains(forbiddenWord)) {
-                return new NicknameCheckResponseDto(false, "사용할 수 없는 단어가 포함되어 있습니다: " + forbiddenWord);
+                return new NicknameCheckResponseDto(false, "사용할 수 없는 단어가 포함되어 있습니다.");
             }
         }
 
-        // 4. 중복 확인 (원본 nickname 대신 중복을 더 엄격히 막으려면 cleanNickname으로 체크할 수도 있음)
+        // 4. 중복 확인
         boolean exists = userRepository.existsByNickname(trimmedNickname);
         if (exists) {
             return new NicknameCheckResponseDto(false, "이미 사용 중인 닉네임입니다.");
