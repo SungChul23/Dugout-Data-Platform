@@ -60,6 +60,6 @@ public class DashboardService {
                         .build());
             }
         }
-        return new DashboardResponseDto(user.getFavoriteTeam(), insights);
+        return new DashboardResponseDto(user.getFavoriteTeam().getName(), insights);
     }
 }
