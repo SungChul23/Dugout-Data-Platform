@@ -27,4 +27,5 @@ public class PredictionResult {
     private String predictionData; // JSON 형식
     private Integer confidence;    // 예측 신뢰도 80%, 85% ..
 
+    private LocalDateTime predictedAt;
 }
