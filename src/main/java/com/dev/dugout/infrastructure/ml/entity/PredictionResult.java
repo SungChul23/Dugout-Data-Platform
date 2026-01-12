@@ -20,16 +20,11 @@ public class PredictionResult {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "player_id", nullable = false)
-    private Player player; // player 테이블에서의 선수 코드를 참조
+    private Player player;
 
-    private String targetSeason; // 2026
+    private String targetSeason; //2026
+    @Column(columnDefinition = "TEXT")
+    private String predictionData; // JSON 형식
+    private Integer confidence;    // 예측 신뢰도 80%, 85% ..
 
-    @Column(columnDefinition = "TEXT") // JSON 형태로 저장
-    private String predictionData;
-
-    private LocalDateTime predictedAt;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isBatch = false; // 고정 선수 예측(ture) 및 사용자 선정 선수 예측(false)
 }

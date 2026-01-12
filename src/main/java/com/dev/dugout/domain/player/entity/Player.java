@@ -16,21 +16,28 @@ public class Player {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "player_id")
     private Long playerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id", nullable = false)
-    private Team team; //team 테이블의 팀 코드 참조
+    private Team team;
 
     @Column(nullable = false)
     private String name;
 
     private String positionType;    // 내야수, 외야수, 투수 등
-    private String subPositionType; // 1루수, 유격수 등 (추후 골든 글러브 예측 떄 사용 예정)
+    private String subPositionType; // null 허용 (추후 고도화용)
     private Integer backNumber;
 
+//    @Column(nullable = false)
+//    @Builder.Default
+//    private Boolean isRisingStar = false; // 대시보드 노출용 라이징 스타
+
+
+    // 많은 선수들 중 성적 예측이 가능한 선수 필터링
     @Column(nullable = false)
     @Builder.Default
-    private Boolean isRisingStar = false; // 대시보드 노출용
+    private Boolean isPredictable = false;
 
 }
