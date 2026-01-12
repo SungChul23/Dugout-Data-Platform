@@ -8,6 +8,6 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class DashboardResponseDto {
-    private String favoriteTeam;
+    private String favoriteTeamName;
     private List<PlayerInsightDto> insights; // 항상 사이즈 3 유지
 }

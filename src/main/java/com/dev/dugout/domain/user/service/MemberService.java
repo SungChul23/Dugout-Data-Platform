@@ -53,7 +53,7 @@ public class MemberService {
     public LoginResponseDto signup(SignupRequestDto requestDto) {
 
         // 프런트에서 보낸 팀명(ex - "삼성 라이온즈")으로 DB에서 팀 엔티티를 조회.
-        Team team = teamRepository.findByName(requestDto.getFavoriteTeam())
+        Team team = teamRepository.findByName(requestDto.getFavoriteTeamName())
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 팀명입니다."));
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
 

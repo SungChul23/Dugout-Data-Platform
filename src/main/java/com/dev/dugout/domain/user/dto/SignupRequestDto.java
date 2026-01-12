@@ -9,5 +9,5 @@ public class SignupRequestDto {
     private String nickname;
     private String email;
     private String password;
-    private String favoriteTeam;
+    private String favoriteTeamName;
 }
