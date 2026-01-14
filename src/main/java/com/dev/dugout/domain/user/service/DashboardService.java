@@ -7,6 +7,7 @@ import com.dev.dugout.domain.user.dto.PlayerInsightDto;
 import com.dev.dugout.domain.user.entity.User;
 import com.dev.dugout.domain.user.entity.UserDashboard;
 import com.dev.dugout.domain.user.repository.UserDashboardRepository;
+import com.dev.dugout.domain.user.repository.UserRepository;
 import com.dev.dugout.infrastructure.ml.entity.PredictionResult;
 import com.dev.dugout.infrastructure.ml.repository.PredictionResultRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,15 @@ import java.util.Optional;
 public class DashboardService {
     private final UserDashboardRepository userDashboardRepository;
     private final PredictionResultRepository predictionResultRepository;
-
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public DashboardResponseDto getUserDashboard(User user) {
+
+        //팀 정보까지 꽉 채워서 -> Detached 해결
+        User managedUser = userRepository.findByLoginIdWithTeam(user.getLoginId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
         List<UserDashboard> userSelections = userDashboardRepository.findByUser(user);
         List<PlayerInsightDto> insights = new ArrayList<>();
 
@@ -60,6 +66,6 @@ public class DashboardService {
                         .build());
             }
         }
-        return new DashboardResponseDto(user.getFavoriteTeam().getName(), insights);
+        return new DashboardResponseDto(managedUser.getFavoriteTeam().getName(), insights);
     }
 }
