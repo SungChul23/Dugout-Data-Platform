@@ -114,6 +114,7 @@ public class MemberService {
         }
         return null;
     }
+
     private LoginResponseDto issueTokens(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getLoginId());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getLoginId());
@@ -129,6 +130,6 @@ public class MemberService {
                             refreshTokenRepository.save(newToken);
                         }
                 );
-        return new LoginResponseDto(accessToken, refreshToken, user.getNickname(), user.getFavoriteTeam().getName());
+        return new LoginResponseDto(accessToken, refreshToken, user.getNickname(), user.getFavoriteTeam().getName(),user.getFavoriteTeam().getSlogan());
     }
 }

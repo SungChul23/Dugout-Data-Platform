@@ -11,4 +11,5 @@ public class LoginResponseDto {
     private String refreshToken;
     private String nickname;
     private String favoriteTeamName;
+    private String teamSlogan;
 }
