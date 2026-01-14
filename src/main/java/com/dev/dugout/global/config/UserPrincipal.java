@@ -11,6 +11,8 @@ import java.util.Collections;
 
 @Getter //
 @AllArgsConstructor
+
+//스프링 시큐리티가 정해놓은 '신분증 양식(인터페이스)'
 public class UserPrincipal implements UserDetails {
 
     private final User user; // 우리 DB의 User 엔티티
