@@ -8,7 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.dev.dugout.global.config.UserPrincipal; // 패키지 임포트 확인!
+import com.dev.dugout.global.config.UserPrincipal;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -23,8 +23,4 @@ public class DashboardController {
         DashboardResponseDto response = dashboardService.getUserDashboard(userPrincipal.getUser());
         return ResponseEntity.ok(response);
     }
-
-
-
-
 }

@@ -11,9 +11,7 @@ public class SurveyRequestDto {
     private int startYear; // 시작 연도
     private Map<String, Integer> preferences; // q1:홈런, q2:타율, q3:방어율, q4:세이브/홀드, q5:OPS, q6:승률
 
-    /**
-     * 사용자의 점수(1~5)를 분석하여 Bedrock AI에게 전달할 성향 요약문을 생성합
-     */
+    //사용자의 점수(1~5)를 분석하여 Bedrock AI에게 전달할 성향 요약문을 생성합
     public String getPreferenceSummary() {
         if (preferences == null || preferences.isEmpty()) {
             return "전반적으로 균형 잡힌 팀을 선호합니다.";

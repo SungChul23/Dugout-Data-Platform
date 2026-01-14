@@ -10,5 +10,5 @@ public class LoginResponseDto {
     private String accessToken;
     private String refreshToken;
     private String nickname;
-    private String favoriteTeamName;
+    private String ektl;
 }
