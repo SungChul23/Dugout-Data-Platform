@@ -17,7 +17,7 @@ public class JwtTokenProvider {
     private final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 60; // 1시간
     private final long REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 14; // 14일
 
-    // (GitHub Actions에서 비밀키 주입)
+    //GitHub Actions에서 비밀키 주입
     public JwtTokenProvider(@Value("${jwt.secret}") String secretKey) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
@@ -39,5 +39,23 @@ public class JwtTokenProvider {
                 .setExpiration(new Date(now.getTime() + expireTime))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String getLoginId(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 }
