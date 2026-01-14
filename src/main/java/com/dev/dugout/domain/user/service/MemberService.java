@@ -105,16 +105,15 @@ public class MemberService {
         return new NicknameCheckResponseDto(true, "사용 가능한 닉네임입니다.");
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public LoginResponseDto getLoginUserInfo(LoginRequestDto loginDto) {
-        User user = userRepository.findByLoginId(loginDto.getEmail()).orElse(null);
+        User user = userRepository.findByLoginIdWithTeam(loginDto.getEmail()).orElse(null);
 
         if (user != null && passwordEncoder.matches(loginDto.getPassword(), user.getPassword())) {
             return issueTokens(user);
         }
         return null;
     }
-
     private LoginResponseDto issueTokens(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getLoginId());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getLoginId());
