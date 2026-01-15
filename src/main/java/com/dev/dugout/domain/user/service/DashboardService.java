@@ -66,7 +66,7 @@ public class DashboardService {
                         .build());
             }
         }
-
+        // 대시보드에 전달 할 팀 고유 슬로건 추가
         return new DashboardResponseDto(managedUser.getFavoriteTeam().getName(),managedUser.getFavoriteTeam().getSlogan() ,insights);
     }
 }
