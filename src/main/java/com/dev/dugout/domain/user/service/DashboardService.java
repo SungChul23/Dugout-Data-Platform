@@ -66,6 +66,7 @@ public class DashboardService {
                         .build());
             }
         }
+
         return new DashboardResponseDto(managedUser.getFavoriteTeam().getName(),managedUser.getFavoriteTeam().getSlogan() ,insights);
     }
 }
