@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import com.dev.dugout.domain.player.entity.Player;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,14 +27,22 @@ public class PredictionResult {
     private String targetSeason; // "2026"
 
     // 핵심 지표 분리 (정렬/조회 최적화)
-    private Double predAvg;      // 예상 타율
-    private Integer predHr;      // 예상 홈런
-    private Double predOps;      // 예상 OPS
+    @Column(precision = 5, scale = 3)
+    private BigDecimal predAvg;      // 예상 타율
 
-    // 변화폭 저장 (UI에서 화살표 및 수치 표시용)
-    private Double avgDiff;
+    private Integer predHr;      // 예상 홈런
+
+    @Column(precision = 5, scale = 3)
+    private BigDecimal predOps;      // 예상 OPS
+
+    // 전후비교
+    @Column(precision = 5, scale = 3)
+    private BigDecimal avgDiff;
+
     private Integer hrDiff;
-    private Double opsDiff;
+
+    @Column(precision = 5, scale = 3)
+    private BigDecimal opsDiff;
 
     @Column(columnDefinition = "TEXT")
     private String insightJson;  // Bedrock 상세 분석용 원본 데이터
