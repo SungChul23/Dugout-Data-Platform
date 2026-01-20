@@ -43,7 +43,7 @@ public class Player {
     @Builder.Default
     private Boolean isPredictable = false;
 
-    //s3에있는 선수의 성적과 매핑
-    private String s3_path;
+    //선수 출생년도
+    private String birth ;
 
 }
