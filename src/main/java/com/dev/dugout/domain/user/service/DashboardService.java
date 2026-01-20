@@ -27,8 +27,6 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public DashboardResponseDto getUserDashboard(User user) {
-
-        //팀 정보까지 꽉 채워서 -> Detached 해결
         User managedUser = userRepository.findByLoginIdWithTeam(user.getLoginId())
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
@@ -44,29 +42,35 @@ public class DashboardService {
             if (selection.isPresent()) {
                 Player player = selection.get().getPlayer();
 
-                // Optional에서 값을 안전하게 꺼냄
+                // 최신 예측 결과 조회
                 PredictionResult pred = predictionResultRepository.findTopByPlayerOrderByPredictedAtDesc(player)
-                        .orElse(null); // 데이터가 없으면 null을 반환하도록 설정
+                        .orElse(null);
 
+                // DTO 빌더에 새로 만든 컬럼들 적용
                 insights.add(PlayerInsightDto.builder()
                         .slotNumber(currentSlot)
                         .playerId(player.getPlayerId())
                         .name(player.getName())
                         .position(player.getPositionType())
-                        // pred가 null일 경우를 대비한 삼항 연산자 처리
-                        .predictedStat(pred != null ? pred.getPredictionData() : "예측 데이터 생성 중")
-                        .confidence(pred != null ? pred.getConfidence() : 0)
+                        // 이제 JSON 전체가 아니라 필요한 숫자 데이터를 직접 매핑 가능!
+                        .predictedAvg(pred != null ? pred.getPredAvg() : 0.0)
+                        .predictedHr(pred != null ? pred.getPredHr() : 0)
+                        .predictedOps(pred != null ? pred.getPredOps() : 0.0)
+                        // 차이값(diff)도 프론트에서 화살표 표시할 때 필요함
+                        .avgDiff(pred != null ? pred.getAvgDiff() : 0.0)
+                        .hrDiff(pred != null ? pred.getHrDiff() : 0)
+                        .opsDiff(pred != null ? pred.getOpsDiff() : 0.0)
+                        // 상세 요약이 필요할 때만 JSON 사용
+                        .insightSummary(pred != null ? pred.getInsightJson() : "데이터 분석 중")
                         .isEmpty(false)
                         .build());
             } else {
-                // 뉴비나 빈 슬롯일 때
                 insights.add(PlayerInsightDto.builder()
                         .slotNumber(currentSlot)
                         .isEmpty(true)
                         .build());
             }
         }
-        // 대시보드에 전달 할 팀 고유 슬로건 추가
-        return new DashboardResponseDto(managedUser.getFavoriteTeam().getName(),managedUser.getFavoriteTeam().getSlogan() ,insights);
+        return new DashboardResponseDto(managedUser.getFavoriteTeam().getName(), managedUser.getFavoriteTeam().getSlogan(), insights);
     }
 }

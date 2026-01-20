@@ -12,7 +12,22 @@ public class PlayerInsightDto {
     private Long playerId;
     private String name;
     private String position;
-    private String predictedStat; // 예: 선수 성적
-    private Integer confidence;   // 신뢰도 바
-    private boolean isEmpty;      // 비어있는 슬롯인지 여부
+
+
+    // 2026년 예상 핵심 지표
+    private Double predictedAvg;   // 예상 타율 (예: 0.312)
+    private Integer predictedHr;   // 예상 홈런 (예: 25)
+    private Double predictedOps;   // 예상 OPS (예: 0.895)
+
+    // 2025년 대비 변화폭
+    private Double avgDiff;        // 타율 차이
+    private Integer hrDiff;        // 홈런 차이
+    private Double opsDiff;        // OPS 차이
+
+    // Bedrock이 생성한 요약 문구 또는 상세 인사이트 JSON
+    private String insightSummary;
+
+    // 슬롯이 비어있는지 여부
+    @Builder.Default
+    private Boolean isEmpty = true;
 }
