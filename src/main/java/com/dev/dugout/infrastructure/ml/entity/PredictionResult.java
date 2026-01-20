@@ -22,10 +22,22 @@ public class PredictionResult {
     @JoinColumn(name = "player_id", nullable = false)
     private Player player;
 
-    private String targetSeason; //2026
+    @Column(nullable = false)
+    private String targetSeason; // "2026"
+
+    // 핵심 지표 분리 (정렬/조회 최적화)
+    private Double predAvg;      // 예상 타율
+    private Integer predHr;      // 예상 홈런
+    private Double predOps;      // 예상 OPS
+
+    // 변화폭 저장 (UI에서 화살표 및 수치 표시용)
+    private Double avgDiff;
+    private Integer hrDiff;
+    private Double opsDiff;
+
     @Column(columnDefinition = "TEXT")
-    private String predictionData; // JSON 형식
-    private Integer confidence;    // 예측 신뢰도 80%, 85% ..
+    private String insightJson;  // Bedrock 상세 분석용 원본 데이터
 
     private LocalDateTime predictedAt;
 }
+
