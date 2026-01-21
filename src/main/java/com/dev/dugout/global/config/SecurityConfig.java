@@ -54,6 +54,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/news/**").permitAll()
                         .requestMatchers("/api/v1/schedule/**").permitAll()
                         .requestMatchers("/api/v1/dashboard", "/api/v1/dashboard/**").authenticated()
+                        .requestMatchers("/api/v1/players/**").permitAll()
+                        .requestMatchers("/api/v1/prediction/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 //JWT 인증 필터를 UsernamePasswordAuthenticationFilter보다 먼저 실행하도록 등록
