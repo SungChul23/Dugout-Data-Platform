@@ -11,7 +11,9 @@ import java.util.Optional;
 public interface PlayerRepository extends JpaRepository<Player, Long> {
 
     // 로스터 조회용: 팀 이름으로 조회하되, 특정 포지션(투수)은 제외한 리스트를 가져옴
-    @Query("SELECT p FROM Player p " +
+    // 추후 실제 성적이 들어간다면 최신데이터로 반영해야함
+    @Query("SELECT DISTINCT p FROM Player p " +
+            "JOIN PredictionResult pr ON p = pr.player " +
             "WHERE p.team.name = :teamName " +
             "AND p.positionType <> '투수' " +
             "AND p.isPredictable = true " +
