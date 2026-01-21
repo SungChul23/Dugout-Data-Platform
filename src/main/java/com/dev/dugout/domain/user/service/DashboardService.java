@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,18 +50,17 @@ public class DashboardService {
                 // DTO 빌더에 새로 만든 컬럼들 적용
                 insights.add(PlayerInsightDto.builder()
                         .slotNumber(currentSlot)
-                        .playerId(player.getPlayerId())
+                        // 프론트와 식별자 통일을 위해 kboPcode를 숫자로 변환하여 전달
+                        .playerId(Long.parseLong(player.getKboPcode()))
                         .name(player.getName())
                         .position(player.getPositionType())
-                        // 이제 JSON 전체가 아니라 필요한 숫자 데이터를 직접 매핑 가능!
-                        .predictedAvg(pred != null ? pred.getPredAvg() : 0.0)
+                        // Double(0.0) 대신 BigDecimal.ZERO 사용
+                        .predictedAvg(pred != null ? pred.getPredAvg() : BigDecimal.ZERO)
                         .predictedHr(pred != null ? pred.getPredHr() : 0)
-                        .predictedOps(pred != null ? pred.getPredOps() : 0.0)
-                        // 차이값(diff)도 프론트에서 화살표 표시할 때 필요함
-                        .avgDiff(pred != null ? pred.getAvgDiff() : 0.0)
+                        .predictedOps(pred != null ? pred.getPredOps() : BigDecimal.ZERO)
+                        .avgDiff(pred != null ? pred.getAvgDiff() : BigDecimal.ZERO)
                         .hrDiff(pred != null ? pred.getHrDiff() : 0)
-                        .opsDiff(pred != null ? pred.getOpsDiff() : 0.0)
-                        // 상세 요약이 필요할 때만 JSON 사용
+                        .opsDiff(pred != null ? pred.getOpsDiff() : BigDecimal.ZERO)
                         .insightSummary(pred != null ? pred.getInsightJson() : "데이터 분석 중")
                         .isEmpty(false)
                         .build());
