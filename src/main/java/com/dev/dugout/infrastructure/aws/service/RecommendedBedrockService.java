@@ -45,7 +45,7 @@ public class RecommendedBedrockService {
         );
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 500);
+        payload.put("max_tokens", 700);
         payload.put("temperature", 0.6); // 안정성을 위해 살짝 낮춤
 
         JSONArray messages = new JSONArray();

@@ -51,18 +51,24 @@ public class ReportBedrockService {
     //정교한 프롬프트를 생성
     private String constructPrompt(PredictionResult pred, String s3Context) {
         return String.format(
-                "너는 KBO 전문 세이버메트릭스 분석가이자 스카우터야. 아래 [S3 마스터 데이터]와 [DB 예측 지표]를 종합하여 %s 선수의 2026년 시즌 전망 리포트를 작성해줘.\n\n" +
-                        "### 1. S3 마스터 데이터 (상세 맥락) ###\n%s\n\n" +
-                        "### 2. DB 예측 지표 ###\n" +
-                        "- 2026 예측 타율: %.3f (변화: %.3f)\n" +
-                        "- 2026 예측 홈런: %d개 (변화: %d)\n" +
-                        "- 2026 예측 OPS: %.3f (변화: %.3f)\n\n" +
-                        "### 리포트 작성 규칙 ###\n" +
-                        "1. **데이터 기반**: S3에 담긴 과거 성적과 26년 예측치의 변화를 기술적으로 분석할 것.\n" +
-                        "2. **전문적 어조**: 신뢰감 있고 간결한 문체를 사용할 것.\n" +
-                        "3. **한국어 요약**: 반드시 한국어로 3문장 이내로 작성할 것.\n",
+                "너는 야구 데이터 분석 전문 '더그아웃'의 수석 스카우터야. " +
+                        "제공된 S3 데이터와 DB의 예측 수치를 종합해서 %s 선수의 '2026 시즌 분석 리포트'를 작성해줘.\n\n" +
+
+                        "### [분석 대상 데이터] ###\n" +
+                        "1. 선수 기본 정보 및 나이 (S3): %s\n" +
+                        "2. 2026 예측 성적 (DB):\n" +
+                        "   - 타율: %.3f (전년 대비 변화: %.3f)\n" +
+                        "   - 홈런: %d개 (전년 대비 변화: %d)\n" +
+                        "   - OPS: %.3f (전년 대비 변화: %.3f)\n\n" +
+
+                        "### [리포트 작성 지침] ###\n" +
+                        "1. **수치 중심 분석**: 예측된 타율, 홈런, OPS의 변화량을 기반으로 2026년의 전반적인 타격 생산성을 먼저 진단할 것.\n" +
+                        "2. **나이를 통한 근거 제시**: 성적 변화(diff)의 원인을 설명할 때 'age_2026' 수치를 활용할 것. " +
+                        "(예: 성적이 오른다면 '전성기 연령 진입에 따른 기량 만개', 하락한다면 '에이징 커브에 따른 신체 능력 조정' 등)\n" +
+                        "3. **스카우터의 시각**: 단순히 숫자를 읽어주지 말고, 이 수치가 이 선수의 커리어에서 어떤 의미(예: 장타자로의 변신, 정교함의 완성 등)를 갖는지 전문가답게 평가할 것.\n" +
+                        "4. **어조 및 분량**: '더그아웃' 서비스의 권위 있는 전문가 톤으로 자연스럽게 작성하며, 문장 수에 구애받지 말고 핵심 내용을 충분히 전달할 것. (한국어 작성)\n",
                 pred.getPlayer().getName(),
-                s3Context, // S3에서 가져온 풍부한 정보 주입
+                s3Context,
                 pred.getPredAvg(), pred.getAvgDiff(),
                 pred.getPredHr(), pred.getHrDiff(),
                 pred.getPredOps(), pred.getOpsDiff()
@@ -79,7 +85,7 @@ public class ReportBedrockService {
 
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 500);
+        payload.put("max_tokens", 900);
         payload.put("temperature", 0.7);
 
         JSONArray messages = new JSONArray();
