@@ -28,7 +28,7 @@ public class PredictionService {
     public List<PlayerResponseDto> getRoster(String teamName) {
         log.info("====> [로스터 조회 시작] 팀명: {}", teamName);
 
-        return playerRepository.findAllByTeamNameAndPositionTypeNot(teamName, "투수")
+        return playerRepository.findPredictablePlayersByTeam(teamName)
                 .stream()
                 .map(p -> PlayerResponseDto.builder()
                         // kboPcode(String)를 DTO의 Long 타입으로 변환하여 전달
