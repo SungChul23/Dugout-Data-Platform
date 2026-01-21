@@ -63,4 +63,6 @@ jobs:
             --aws.athena.output-location=${{ secrets.AWS_ATHENA_OUTPUT_LOCATION }} \
             --naver.api.client-id=${{ secrets.NAVER_CLIENT_ID }} \
             --naver.api.client-secret=${{ secrets.NAVER_CLIENT_SECRET }} \
-            --jwt.secret=${{ secrets.JWT_SECRET_KEY }} > /home/ubuntu/dugout/app.log 2>&1 &
+            --jwt.secret=${{ secrets.JWT_SECRET_KEY }} \
+            --aws.s3.bucket=${{ secrets.S3_BUCKET_NAME }} \
+            --aws.s3.master-key=${{ secrets.S3_MASTER_KEY }} > /home/ubuntu/dugout/app.log 2>&1 &
