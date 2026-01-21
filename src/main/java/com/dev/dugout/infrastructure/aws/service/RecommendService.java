@@ -15,10 +15,10 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j // 로깅을 위한 어노테이션
-public class RecommendationService {
+public class RecommendService {
 
     private final AthenaClient athenaClient;
-    private final BedrockService bedrockService;
+    private final RecommendedBedrockService bedrockService;
 
     @Value("${aws.athena.database}")
     private String database;

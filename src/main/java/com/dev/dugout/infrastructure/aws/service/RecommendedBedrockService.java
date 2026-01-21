@@ -14,7 +14,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class BedrockService {
+public class RecommendedBedrockService {
 
     private final BedrockRuntimeClient client = BedrockRuntimeClient.builder()
             .region(Region.AP_NORTHEAST_2) // 서울 리전
