@@ -17,7 +17,8 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             "WHERE p.team.name = :teamName " +
             "AND p.positionType <> '투수' " +
             "AND p.isPredictable = true " +
-            "AND p.backNumber IS NOT NULL")
+            "AND p.backNumber IS NOT NULL " +
+            "ORDER BY p.backNumber ASC") // 등번호 기준 오름차순 정렬
     List<Player> findPredictablePlayersByTeam(@Param("teamName") String teamName);
 
     // 2상세 분석용: KBO 고유 번호(pcode)로 선수 1명을 조회
