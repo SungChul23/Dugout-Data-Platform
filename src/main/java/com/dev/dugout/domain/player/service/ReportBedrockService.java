@@ -50,27 +50,30 @@ public class ReportBedrockService {
 
     //정교한 프롬프트를 생성
     private String constructPrompt(PredictionResult pred, String s3Context) {
+        // 홈런 수치를 정수로 반환 (15.3 -> 15)
+        int hrVal = (int) Math.round(pred.getPredHr().doubleValue());
+        int hrDiff = (int) Math.round(pred.getHrDiff().doubleValue());
+
         return String.format(
                 "너는 야구 데이터 분석 전문 '더그아웃'의 수석 스카우터야. " +
-                        "제공된 S3 데이터와 DB의 예측 수치를 종합해서 %s 선수의 '2026 시즌 분석 리포트'를 작성해줘.\n\n" +
+                        "제공된 데이터를 바탕으로 %s 선수의 '2026 시즌 분석 리포트'를 작성해줘.\n\n" +
 
-                        "### [분석 대상 데이터] ###\n" +
-                        "1. 선수 기본 정보 및 나이 (S3): %s\n" +
-                        "2. 2026 예측 성적 (DB):\n" +
-                        "   - 타율: %.3f (전년 대비 변화: %.3f)\n" +
-                        "   - 홈런: %d개 (전년 대비 변화: %d)\n" +
-                        "   - OPS: %.3f (전년 대비 변화: %.3f)\n\n" +
+                        "### [분석 데이터] ###\n" +
+                        "1. 선수 맥락 (S3): %s\n" +
+                        "2. 2026 예측 성적:\n" +
+                        "   - 타율: %.3f (변화: %.3f)\n" +
+                        "   - 홈런: %d개 (변화: %d)\n" + // 정수로 전달
+                        "   - OPS: %.3f (변화: %.3f)\n\n" +
 
-                        "### [리포트 작성 지침] ###\n" +
-                        "1. **수치 중심 분석**: 예측된 타율, 홈런, OPS의 변화량을 기반으로 2026년의 전반적인 타격 생산성을 먼저 진단할 것.\n" +
-                        "2. **나이를 통한 근거 제시**: 성적 변화(diff)의 원인을 설명할 때 'age_2026' 수치를 활용할 것. " +
-                        "(예: 성적이 오른다면 '전성기 연령 진입에 따른 기량 만개', 하락한다면 '에이징 커브에 따른 신체 능력 조정' 등)\n" +
-                        "3. **스카우터의 시각**: 단순히 숫자를 읽어주지 말고, 이 수치가 이 선수의 커리어에서 어떤 의미(예: 장타자로의 변신, 정교함의 완성 등)를 갖는지 전문가답게 평가할 것.\n" +
-                        "4. **어조 및 분량**: '더그아웃' 서비스의 권위 있는 전문가 톤으로 자연스럽게 작성하며, 문장 수에 구애받지 말고 핵심 내용을 충분히 전달할 것. (한국어 작성)\n",
+                        "### [리포트 작성 지침 - 수석 스카우터의 규칙] ###\n" +
+                        "1. **핵심 요약**: 이미 화면에 숫자가 있으니 리포트에서 숫자를 하나하나 나열하며 지면을 낭비하지 말 것. 대신 성적의 '상승/하락 흐름'과 '이유'에 집중할 것.\n" +
+                        "2. **나이의 일치**: 'age_2026' 수치를 서두에 한 번만 언급하여 전체 분석의 근거로 삼을 것. 문단마다 나이를 반복하지 말 것.\n" +
+                        "3. **전문적 통찰**: '에이징 커브에 따른 역할 변화', '피지컬 정점에서의 기술적 완성' 등 스카우터만이 할 수 있는 세련된 분석을 제공할 것.\n" +
+                        "4. **간결성 유지**: 불필요한 미사여구나 은퇴 권유 같은 사족은 빼고, 모바일에서 읽기 편하게 3~4개 문단 내외로 임팩트 있게 작성할 것.\n",
                 pred.getPlayer().getName(),
                 s3Context,
                 pred.getPredAvg(), pred.getAvgDiff(),
-                pred.getPredHr(), pred.getHrDiff(),
+                hrVal, hrDiff,
                 pred.getPredOps(), pred.getOpsDiff()
         );
     }
@@ -85,7 +88,7 @@ public class ReportBedrockService {
 
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 900);
+        payload.put("max_tokens", 700);
         payload.put("temperature", 0.7);
 
         JSONArray messages = new JSONArray();
