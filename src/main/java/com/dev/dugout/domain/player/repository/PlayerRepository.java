@@ -12,5 +12,5 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     List<Player> findAllByTeamNameAndPositionTypeNot(String teamName, String positionType);
 
     // 2상세 분석용: KBO 고유 번호(pcode)로 선수 1명을 조회
-    Optional<Player> findByKboPcode(Long kboPcode);
+    Optional<Player> findByKboPcode(String kboPcode);
 }

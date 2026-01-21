@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.dev.dugout.domain.player.service.ReportBedrockService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -46,8 +45,8 @@ public class PredictionService {
     public PredictionResponseDto getAnalysis(Long kboPcode) {
         log.info("====> [상세 분석 시작] KBO PCODE: {}", kboPcode);
 
-        // 1. pcode로 Player 엔티티 조회
-        Player player = playerRepository.findByKboPcode(kboPcode)
+        // 1. pcode로 Player 엔티티 조회 (long->String 형변환)
+        Player player = playerRepository.findByKboPcode(String.valueOf(kboPcode))
                 .orElseThrow(() -> {
                     log.error("#### [에러] 선수를 찾을 수 없음. PCODE: {}", kboPcode);
                     return new RuntimeException("해당 선수를 찾을 수 없습니다.");
