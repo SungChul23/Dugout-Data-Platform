@@ -44,6 +44,20 @@ public class PredictionResult {
     @Column(precision = 5, scale = 3)
     private BigDecimal opsDiff;
 
+    //투수 지표
+    @Column(precision = 5, scale = 3)
+    private BigDecimal predEra;
+
+    @Column(precision = 5, scale = 3)
+    private BigDecimal predWhip;
+
+    @Column(precision = 5, scale = 3)
+    private BigDecimal eraEliteProb;
+
+    @Column(precision = 5, scale = 3)
+    private BigDecimal whipEliteProb;
+
+
     @Column(columnDefinition = "TEXT")
     private String insightJson;  // Bedrock 상세 분석용 원본 데이터
 
