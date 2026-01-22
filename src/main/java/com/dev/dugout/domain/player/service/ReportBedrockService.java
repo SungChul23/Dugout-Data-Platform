@@ -107,22 +107,24 @@ public class ReportBedrockService {
     // [투수용 프롬프트 생성]
     private String constructPitcherPrompt(PredictionResult pred, String s3Context) {
         String playerName = pred.getPlayer().getName();
-
-        // 투수는 확률(Probability) 지표가 핵심
         double eraProb = pred.getEraEliteProb() != null ? pred.getEraEliteProb().doubleValue() * 100 : 0;
         double whipProb = pred.getWhipEliteProb() != null ? pred.getWhipEliteProb().doubleValue() * 100 : 0;
 
         return String.format(
                 "너는 야구 데이터 분석 전문 '더그아웃'의 수석 스카우터야. %s 투수의 리포트를 작성해줘.\n\n" +
+
                         "### [분석 데이터] ###\n" +
                         "1. 선수 맥락 (S3): %s\n" +
                         "2. 현재 상태: ERA %.2f, WHIP %.2f\n" +
                         "3. 2026 엘리트 등극 확률(ML 예측): ERA 상위 20%% 진입 %.1f%%, WHIP 상위 20%% 진입 %.1f%%\n\n" +
-                        "### [작성 규칙] ###\n" +
-                        "1. 타이틀: [2026 시즌 분석 리포트 - %s 투수]\n" +
-                        "2. 기호(#, *, -) 절대 사용 금지. 오직 텍스트와 줄바꿈만 사용.\n" +
-                        "3. ERA와 WHIP 확률 지표를 근거로 내년 시즌 '반등 가능성'을 에이징 커브와 연결해 분석할 것.\n" +
-                        "4. 마지막 문단에는 팀 마운드 운용 측면에서의 전략적 가치 총평.\n",
+
+                        "### [리포트 작성 규칙 - 수석 스카우터의 명령] ###\n" +
+                        "1. **타이틀 형식**: 리포트의 첫 줄은 반드시 [2026 시즌 분석 리포트 - %s 선수] 로 시작할 것.\n" +
+                        "2. **기호 사용 금지**: '#', '*', '-' 같은 마크다운 서식 기호를 절대 사용하지 말 것. 오직 텍스트와 줄바꿈으로만 구성할 것.\n" +
+                        "3. **보직 중립성**: 선발, 불펜 등 특정 보직을 단정 짓지 말 것. 대신 '마운드의 핵심 전력', '팀의 주축 자원', '필승조 혹은 핵심 로테이션'과 같은 포괄적인 표현을 사용할 것.\n" +
+                        "4. **지표의 신뢰도**: 현재의 낮은 수치(ERA, WHIP)가 내년에도 유지될 확률이 매우 높다는 점을 '성적의 지속 가능성' 측면에서 분석할 것.\n" +
+                        "5. **에이징 커브 분석**: 20대 초중반의 나이가 가지는 성장의 여지와 신체적 전성기 진입 단계를 결합하여 설명할 것.\n" +
+                        "6. **종합 평가**: 마지막 문단에는 이 투수가 팀의 전체적인 마운드 뎁스(Depth)와 승률 계산에 기여할 전략적 가치를 총평할 것.\n",
                 playerName, s3Context,
                 pred.getPredEra(), pred.getPredWhip(),
                 eraProb, whipProb,
