@@ -50,33 +50,35 @@ public class ReportBedrockService {
 
     //정교한 프롬프트를 생성
     private String constructPrompt(PredictionResult pred, String s3Context) {
-        // 홈런 수치를 정수로 변환
+        // 홈런 수치를 정수로 변환 (예: 15.3 -> 15)
         int hrVal = (int) Math.round(pred.getPredHr().doubleValue());
         int hrDiff = (int) Math.round(pred.getHrDiff().doubleValue());
+        String playerName = pred.getPlayer().getName();
 
         return String.format(
                 "너는 야구 데이터 분석 전문 '더그아웃'의 수석 스카우터야. " +
-                        "제공된 데이터를 바탕으로 %s 선수의 '2026 시즌 분석 리포트'를 아래 구조에 맞춰 작성해줘.\n\n" +
+                        "아래 지침에 따라 %s 선수의 리포트를 작성해줘.\n\n" +
 
                         "### [분석 데이터] ###\n" +
                         "1. 선수 맥락 (S3): %s\n" +
                         "2. 2026 예측 성적:\n" +
                         "   - 타율: %.3f (변화: %.3f)\n" +
-                        "   - 홈런: %d개 (변화: %d)\n" + // 소수점 제거된 정수
+                        "   - 홈런: %d개 (변화: %d)\n" +
                         "   - OPS: %.3f (변화: %.3f)\n\n" +
 
-                        "### [리포트 작성 규칙] ###\n" +
-                        "1. **항목별 분석**: 타율, 홈런, OPS 순서로 문단을 나누어 분석할 것. \n" +
-                        "2. **데이터와 나이의 결합**: 각 지표의 변화 원인을 'age_2026' 수치와 연결해 스카우터 관점에서 설명할 것. (예: 노련미에 의한 타율 상승, 에이징 커브에 따른 장타력 감소 등)\n" +
-                        "3. **정수 사용**: 홈런 개수는 반드시 내가 제공한 정수(%d개)로만 언급할 것. 소수점 사용 금지.\n" +
-                        "4. **종합 평가**: 마지막 문단에는 선수의 팀 내 역할과 향후 커리어 방향성에 대한 수석 스카우터의 총평을 남길 것.\n" +
-                        "5. **어조**: 전문가답고 신뢰감 있는 문체를 유지하며, 너무 늘어지지 않게 핵심 위주로 작성할 것.\n",
-                pred.getPlayer().getName(),
+                        "### [리포트 작성 규칙 - 수석 스카우터의 명령] ###\n" +
+                        "1. **타이틀 형식**: 리포트의 첫 줄은 반드시 [2026 시즌 분석 리포트 - %s 선수] 로 시작할 것.\n" +
+                        "2. **기호 사용 금지**: '#', '*', '-' 같은 마크다운 서식 기호를 절대 사용하지 말 것. 오직 텍스트와 줄바꿈으로만 구성할 것.\n" +
+                        "3. **항목별 분석**: 타율, 홈런, OPS 순서로 문단을 나누어 분석하되, 'age_2026' 수치를 근거로 들어 에이징 커브 관점에서 설명할 것.\n" +
+                        "4. **종합 평가**: 마지막 문단에는 선수의 팀 내 역할과 향후 전망에 대한 총평을 남길 것.\n" +
+                        "5. **수치 처리**: 홈런은 반드시 내가 제공한 정수(%d개)로만 언급할 것.\n",
+                playerName,
                 s3Context,
                 pred.getPredAvg(), pred.getAvgDiff(),
                 hrVal, hrDiff,
                 pred.getPredOps(), pred.getOpsDiff(),
-                hrVal // 규칙 3번용 데이터
+                playerName, // 타이틀용
+                hrVal // 정수 홈런용
         );
     }
 
@@ -90,7 +92,7 @@ public class ReportBedrockService {
 
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 700);
+        payload.put("max_tokens", 1000);
         payload.put("temperature", 0.7);
 
         JSONArray messages = new JSONArray();
