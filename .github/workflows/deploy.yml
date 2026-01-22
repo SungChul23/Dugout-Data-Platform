@@ -65,4 +65,5 @@ jobs:
             --naver.api.client-secret=${{ secrets.NAVER_CLIENT_SECRET }} \
             --jwt.secret=${{ secrets.JWT_SECRET_KEY }} \
             --aws.s3.bucket=${{ secrets.S3_BUCKET_NAME }} \
-            --aws.s3.master-key=${{ secrets.S3_MASTER_KEY }} > /home/ubuntu/dugout/app.log 2>&1 &
+            --aws.s3.master-key=${{ secrets.S3_MASTER_KEY }} \
+            --aws.s3.pitcher-master-key=${{ secrets.S3_MASTER_PITCHER_KEY }} > /home/ubuntu/dugout/app.log 2>&1 &
