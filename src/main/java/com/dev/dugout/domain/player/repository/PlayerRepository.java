@@ -10,16 +10,26 @@ import java.util.Optional;
 
 public interface PlayerRepository extends JpaRepository<Player, Long> {
 
-    // 로스터 조회용: 팀 이름으로 조회하되, 특정 포지션(투수)은 제외한 리스트를 가져옴
-    // 추후 실제 성적이 들어간다면 최신데이터로 반영해야함
+    // 로스터 조회용
+    // 타자 명단 조회
     @Query("SELECT DISTINCT p FROM Player p " +
             "JOIN PredictionResult pr ON p = pr.player " +
             "WHERE p.team.name = :teamName " +
-            "AND p.positionType <> '투수' " +
-            "AND p.isPredictable = true " +
+            "AND p.positionType <> '투수' " + // '투수'가 아닌 경우
+            "AND p.isPredictable = true " +  // 예측 데이터가 준비된 상태
             "AND p.backNumber IS NOT NULL " +
-            "ORDER BY p.backNumber ASC") // 등번호 기준 오름차순 정렬
-    List<Player> findPredictablePlayersByTeam(@Param("teamName") String teamName);
+            "ORDER BY CAST(p.backNumber AS integer) ASC")
+    List<Player> findPredictableHitters(@Param("teamName") String teamName);
+
+    // 투수 명단 조회
+    @Query("SELECT DISTINCT p FROM Player p " +
+            "JOIN PredictionResult pr ON p = pr.player " +
+            "WHERE p.team.name = :teamName " +
+            "AND p.positionType = '투수' " +  // '투수'인 경우
+            "AND p.isPredictable = true " +  // 예측 데이터가 준비된 상태 (이제 투수도 true여야 함)
+            "AND p.backNumber IS NOT NULL " +
+            "ORDER BY CAST(p.backNumber AS integer) ASC")
+    List<Player> findPredictablePitchers(@Param("teamName") String teamName);
 
     // 2상세 분석용: KBO 고유 번호(pcode)로 선수 1명을 조회
     Optional<Player> findByKboPcode(String kboPcode);

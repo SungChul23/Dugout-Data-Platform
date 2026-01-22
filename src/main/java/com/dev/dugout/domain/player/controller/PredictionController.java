@@ -21,8 +21,10 @@ public class PredictionController {
 
     //구단별 선수 명단 조회
     @GetMapping("/players")
-    public ResponseEntity<List<PlayerResponseDto>> getRoster(@RequestParam("team") String teamName) {
-        List<PlayerResponseDto> roster = analysisService.getRoster(teamName);
+    public ResponseEntity<List<PlayerResponseDto>> getRoster(
+            @RequestParam("team") String teamName,
+            @RequestParam(value = "type", defaultValue = "hitter") String type) {
+        List<PlayerResponseDto> roster = analysisService.getRoster(teamName, type);
         return ResponseEntity.ok(roster);
     }
 

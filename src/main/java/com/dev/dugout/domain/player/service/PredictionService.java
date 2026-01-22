@@ -24,14 +24,16 @@ public class PredictionService {
     private final PredictionResultRepository predictionRepository;
     private final ReportBedrockService reportBedrockService;
 
-    //구단별 선수 명단 조회
-    public List<PlayerResponseDto> getRoster(String teamName) {
-        log.info("====> [로스터 조회 시작] 팀명: {}", teamName);
+    //구단별/타입별(타자/투수) 선수 명단 조회
+    public List<PlayerResponseDto> getRoster(String teamName, String type) {
+        log.info("====> [로스터 조회 시작] 팀명: {}, 타입: {}", teamName, type);
 
-        return playerRepository.findPredictablePlayersByTeam(teamName)
-                .stream()
+        List<Player> players = "pitcher".equalsIgnoreCase(type)
+                ? playerRepository.findPredictablePitchers(teamName)
+                : playerRepository.findPredictableHitters(teamName);
+
+        return players.stream()
                 .map(p -> PlayerResponseDto.builder()
-                        // kboPcode(String)를 DTO의 Long 타입으로 변환하여 전달
                         .playerId(Long.valueOf(p.getKboPcode()))
                         .name(p.getName())
                         .backNumber(p.getBackNumber())
@@ -40,71 +42,59 @@ public class PredictionService {
                 .toList();
     }
 
-    //상세 분석 결과 조회
+    //상세 분석 결과 조회 (투수/타자 자동 판별)
     @Transactional
     public PredictionResponseDto getAnalysis(Long kboPcode) {
         log.info("====> [상세 분석 시작] KBO PCODE: {}", kboPcode);
 
-        // 1. pcode로 Player 엔티티 조회 (long->String 형변환)
+        // 1. 선수 엔티티 조회
         Player player = playerRepository.findByKboPcode(String.valueOf(kboPcode))
-                .orElseThrow(() -> {
-                    log.error("#### [에러] 선수를 찾을 수 없음. PCODE: {}", kboPcode);
-                    return new RuntimeException("해당 선수를 찾을 수 없습니다.");
-                });
+                .orElseThrow(() -> new RuntimeException("해당 선수를 찾을 수 없습니다."));
 
-        // 2. Player 엔티티로 최신 예측 결과 조회 (성철님이 제안하신 메서드 활용)
+        // 2. 최신 예측 결과 조회
         PredictionResult pred = predictionRepository.findTopByPlayerOrderByPredictedAtDesc(player)
-                .orElseThrow(() -> {
-                    log.error("#### [에러] 예측 데이터 없음. 선수명: {}", player.getName());
-                    return new RuntimeException("예측 데이터가 존재하지 않습니다.");
-                });
+                .orElseThrow(() -> new RuntimeException("예측 데이터가 존재하지 않습니다."));
 
-        // 3. 현재 성적 계산 (BigDecimal subtract 연산으로 정밀도 유지)
-        BigDecimal currentAvg = pred.getPredAvg()
-                .subtract(pred.getAvgDiff())
-                .setScale(3, RoundingMode.HALF_UP);
-
-        BigDecimal currentOps = pred.getPredOps()
-                .subtract(pred.getOpsDiff())
-                .setScale(3, RoundingMode.HALF_UP);
-
-        // 홈런은 정수 연산
-        Integer currentHr = pred.getPredHr() - pred.getHrDiff();
-
-        // 4. AI 리포트 캐싱 및 생성 로직
+        // 3. AI 리포트 캐싱 로직 (포지션별 프롬프트는 BedrockService 내부에서 처리됨)
         String report = pred.getInsightJson();
         if (report == null || report.isBlank()) {
-            log.info("====> [AI 리포트 생성 중] 캐시가 없어 Bedrock을 호출합니다. 대상: {}", player.getName());
-
-            long startTime = System.currentTimeMillis();
-            // ReportBedrockService 내부에서 pred.getPlayer().getKboPcode()를 사용하여 S3 Map을 조회합니다.
+            log.info("====> [AI 리포트 생성 중] 대상: {}", player.getName());
             report = reportBedrockService.generatePlayerReport(pred);
-            long endTime = System.currentTimeMillis();
-
-            log.info("====> [AI 리포트 생성 완료] 소요 시간: {}ms", (endTime - startTime));
-
             pred.setInsightJson(report);
             predictionRepository.save(pred);
-        } else {
-            log.info("====> [AI 리포트 캐시 사용] 기존 리포트를 반환합니다.");
         }
 
-        log.info("====> [분석 완료] 최종 결과 응답 구성. 선수: {}", player.getName());
-
-        return PredictionResponseDto.builder()
+        // 4. 응답 DTO 구성 (포지션별 분기 처리)
+        PredictionResponseDto.PredictionResponseDtoBuilder builder = PredictionResponseDto.builder()
                 .name(player.getName())
                 .backNumber(player.getBackNumber())
                 .position(player.getPositionType())
-                .predAvg(pred.getPredAvg())
-                .predHr(pred.getPredHr())
-                .predOps(pred.getPredOps())
-                .avgDiff(pred.getAvgDiff())
-                .hrDiff(pred.getHrDiff())
-                .opsDiff(pred.getOpsDiff())
-                .currentAvg(currentAvg)
-                .currentHr(currentHr)
-                .currentOps(currentOps)
-                .aiReport(report)
-                .build();
+                .aiReport(report);
+
+        if ("투수".equals(player.getPositionType())) {
+            log.info("====> [투수 데이터 구성] 선수: {}", player.getName());
+            // 투수는 현재 성적(ERA, WHIP)과 엘리트 확률 정보를 전달
+            builder.currentEra(pred.getPredEra())
+                    .currentWhip(pred.getPredWhip())
+                    .eraEliteProb(pred.getEraEliteProb())
+                    .whipEliteProb(pred.getWhipEliteProb());
+        } else {
+            log.info("====> [타자 데이터 구성] 선수: {}", player.getName());
+            // 타자는 기존대로 예측치와 변화량을 계산하여 전달
+            BigDecimal currentAvg = pred.getPredAvg()
+                    .subtract(pred.getAvgDiff() != null ? pred.getAvgDiff() : BigDecimal.ZERO)
+                    .setScale(3, RoundingMode.HALF_UP);
+
+            BigDecimal currentOps = pred.getPredOps()
+                    .subtract(pred.getOpsDiff() != null ? pred.getOpsDiff() : BigDecimal.ZERO)
+                    .setScale(3, RoundingMode.HALF_UP);
+
+            Integer currentHr = pred.getPredHr() - (pred.getHrDiff() != null ? pred.getHrDiff() : 0);
+
+            builder.predAvg(pred.getPredAvg()).predHr(pred.getPredHr()).predOps(pred.getPredOps())
+                    .avgDiff(pred.getAvgDiff()).hrDiff(pred.getHrDiff()).opsDiff(pred.getOpsDiff())
+                    .currentAvg(currentAvg).currentHr(currentHr).currentOps(currentOps);
+        }
+        return builder.build();
     }
 }

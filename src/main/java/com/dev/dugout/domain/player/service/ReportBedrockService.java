@@ -30,26 +30,48 @@ public class ReportBedrockService {
     @PostConstruct
     public void init() {
         log.info("====> [초기화] S3 마스터 데이터를 메모리에 로드합니다.");
-        String jsonContent = s3Service.fetchMasterJson();
 
+        // 1. 타자 데이터 로드
+        loadMasterData(s3Service.fetchMasterJson(), "타자");
+
+        // 2. 투수 데이터 로드 (S3Service에 투수용 메서드 추가 필요)
+        loadMasterData(s3Service.fetchPitcherMasterJson(), "투수");
+    }
+
+    private void loadMasterData(String jsonContent, String type) {
         if (jsonContent != null) {
             try {
                 JSONArray jsonArray = new JSONArray(jsonContent);
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject obj = jsonArray.getJSONObject(i);
-                    // JSON의 player_id(pcode)를 String 키로 저장
-                    String pcode = String.valueOf(obj.get("player_id"));
+                    // JSON 내 키값이 pcode 또는 player_id일 수 있으므로 유연하게 처리
+                    String pcode = obj.has("pcode") ? String.valueOf(obj.get("pcode")) : String.valueOf(obj.get("player_id"));
                     playerMasterDataMap.put(pcode, obj.toString());
                 }
-                log.info("====> [성공] 총 {}명의 선수 데이터를 캐싱했습니다.", playerMasterDataMap.size());
+                log.info("====> [성공] {} 명의 {} 데이터를 캐싱했습니다.", jsonArray.length(), type);
             } catch (Exception e) {
-                log.error("#### [초기화 실패] JSON 파싱 중 오류: {}", e.getMessage());
+                log.error("#### [초기화 실패] {} JSON 파싱 오류: {}", type, e.getMessage());
             }
         }
     }
 
-    //정교한 프롬프트를 생성
-    private String constructPrompt(PredictionResult pred, String s3Context) {
+    //포지션에 따라 타자 OR 투수 프롬프트를 분기 생성
+    public String generatePlayerReport(PredictionResult pred) {
+        String pcode = pred.getPlayer().getKboPcode();
+        String s3Context = playerMasterDataMap.getOrDefault(pcode, "기본 선수 정보만 제공됨");
+
+        String prompt;
+        if ("투수".equals(pred.getPlayer().getPositionType())) {
+            prompt = constructPitcherPrompt(pred, s3Context);
+        } else {
+            prompt = constructHitterPrompt(pred, s3Context);
+        }
+
+        return invokeBedrock(prompt);
+    }
+
+    //[타자용 프롬프트 생성]
+    private String constructHitterPrompt(PredictionResult pred, String s3Context) {
         // 홈런 수치를 정수로 변환 (예: 15.3 -> 15)
         int hrVal = (int) Math.round(pred.getPredHr().doubleValue());
         int hrDiff = (int) Math.round(pred.getHrDiff().doubleValue());
@@ -82,14 +104,34 @@ public class ReportBedrockService {
         );
     }
 
+    // [투수용 프롬프트 생성]
+    private String constructPitcherPrompt(PredictionResult pred, String s3Context) {
+        String playerName = pred.getPlayer().getName();
+
+        // 투수는 확률(Probability) 지표가 핵심
+        double eraProb = pred.getEraEliteProb() != null ? pred.getEraEliteProb().doubleValue() * 100 : 0;
+        double whipProb = pred.getWhipEliteProb() != null ? pred.getWhipEliteProb().doubleValue() * 100 : 0;
+
+        return String.format(
+                "너는 야구 데이터 분석 전문 '더그아웃'의 수석 스카우터야. %s 투수의 리포트를 작성해줘.\n\n" +
+                        "### [분석 데이터] ###\n" +
+                        "1. 선수 맥락 (S3): %s\n" +
+                        "2. 현재 상태: ERA %.2f, WHIP %.2f\n" +
+                        "3. 2026 엘리트 등극 확률(ML 예측): ERA 상위 20%% 진입 %.1f%%, WHIP 상위 20%% 진입 %.1f%%\n\n" +
+                        "### [작성 규칙] ###\n" +
+                        "1. 타이틀: [2026 시즌 분석 리포트 - %s 투수]\n" +
+                        "2. 기호(#, *, -) 절대 사용 금지. 오직 텍스트와 줄바꿈만 사용.\n" +
+                        "3. ERA와 WHIP 확률 지표를 근거로 내년 시즌 '반등 가능성'을 에이징 커브와 연결해 분석할 것.\n" +
+                        "4. 마지막 문단에는 팀 마운드 운용 측면에서의 전략적 가치 총평.\n",
+                playerName, s3Context,
+                pred.getPredEra(), pred.getPredWhip(),
+                eraProb, whipProb,
+                playerName
+        );
+    }
+
     //캐싱된 데이터를 찾아 베드락에게 전달
-    public String generatePlayerReport(PredictionResult pred) {
-        // 엔티티의 kboPcode(String)로 S3 데이터 조회
-        String pcode = pred.getPlayer().getKboPcode();
-        String s3Context = playerMasterDataMap.getOrDefault(pcode, "기본 선수 정보만 제공됨");
-
-        String prompt = constructPrompt(pred, s3Context);
-
+    private String invokeBedrock(String prompt) {
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
         payload.put("max_tokens", 1000);
@@ -106,14 +148,12 @@ public class ReportBedrockService {
                     .body(SdkBytes.fromUtf8String(payload.toString()))
                     .build();
 
-            // 변수명 수정: client -> bedrockClient
             InvokeModelResponse response = bedrockClient.invokeModel(request);
             JSONObject resp = new JSONObject(response.body().asUtf8String());
             return resp.getJSONArray("content").getJSONObject(0).getString("text");
-
         } catch (Exception e) {
-            log.error(">>>> [BEDROCK ERROR] 선수 분석 실패: {}", e.getMessage());
-            return "AI 리포트 생성 중 오류가 발생했습니다. 수치 지표를 확인해 주세요.";
+            log.error(">>>> [BEDROCK ERROR] 리포트 생성 실패: {}", e.getMessage());
+            return "AI 리포트 생성 중 오류가 발생했습니다.";
         }
     }
 }
