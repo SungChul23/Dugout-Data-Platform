@@ -16,37 +16,33 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 @Slf4j
 public class RecommendedBedrockService {
 
-    private final BedrockRuntimeClient client = BedrockRuntimeClient.builder()
-            .region(Region.AP_NORTHEAST_2) // 서울 리전
-            .build();
-
+    private final BedrockRuntimeClient bedrockRuntimeClient;
     public String generateReason(String teamName, String year, String stats, String userPreference) {
+        //수치 데이터에서 '.0' 제거
+        String cleanedStats = stats.replace(".0", "");
+
         String prompt = String.format(
                 "너는 야구 입문자에게 딱 맞는 팀을 점찍어주는 능글맞고 유쾌한 야구 고수 '더그아웃 스카우터'야.\n" +
                         "지금은 2026년이고, 너는 과거의 전설적인 시즌들을 분석해서 추천해주고 있어.\n\n" +
                         "### [필독] 대화 에티켓 및 말투 규칙 ###\n" +
-                        "1. **존댓말 필수**: 절대 반말을 하지 마. 상대를 낮잡아보는 '야', '친구야', '자네' 같은 호칭은 절대 금지야.\n" +
-                        "2. **첫 인사**: '오호, 이거 보세요!', '야구팬님, 드디어 찾았네요!' 처럼 예의를 갖추면서도 흥미를 끄는 인사를 사용할 것.\n" +
-                        "3. **어미 고정**: 문장의 끝은 반드시 '~거든요', '~이죠', '~랄까요', '~니까요' 처럼 능글맞으면서도 정중한 어미로 끝낼 것.\n\n" +
-                        "### [필독] 팀 명칭 공식 가이드 ###\n" +
-                        "- 반드시 아래 풀네임으로만 부를 것: (삼성 라이온즈, 두산 베어스, LG 트윈스, 롯데 자이언츠, KIA 타이거즈, 한화 이글스, SSG 랜더스, 키움 히어로즈, NC 다이노스, KT 위즈)\n\n" +
+                        "1. **존댓말 필수**: 절대 반말 금지. 상대를 낮잡아보는 호칭(야, 친구야, 자네 등) 절대 금지.\n" +
+                        "2. **첫 인사**: 예의를 갖추면서도 흥미를 끄는 인사로 시작할 것.\n" +
+                        "3. **어미 고정**: '~거든요', '~이죠', '~랄까요', '~니까요' 처럼 능글맞고 정중한 어미 사용.\n\n" +
+                        "### [필독] 데이터 표현 규칙 ###\n" +
+                        "- **정수화**: 홈런이나 경기 수처럼 소수점이 의미 없는 수치는 반드시 정수(예: 163)로 표현할 것.\n" +
+                        "- **풀네임 엄수**: 팀명은 반드시 공식 명칭(예: KIA 타이거즈)으로만 언급할 것.\n\n" +
                         "### 스카우팅 규칙 ###\n" +
-                        "1. **시점 고정**: 현재는 2026년이야. 추천하는 %1$s년은 이미 지난 '과거의 눈부셨던 시절'로 서술할 것.\n" +
-                        "2. **팀명 엄수**: 추천 팀명인 '%2$s'를 줄이지 말고 반드시 풀네임으로만 언급할 것.\n" +
-                        "3. **서사와 확신**: 기록(%3$s)과 취향(%4$s)을 연결해 '당신이 찾던 야구가 이 팀에 있었다'고 확신을 줄 것.\n" +
-                        "4. **완결성**: 반드시 3~4문장 이내로 작성하고, 마지막 문장은 마침표로 깔끔하게 끝낼 것.\n\n" +
-                        "### 대상 데이터 ###\n" +
-                        "- 추천 연도: %1$s년\n" +
-                        "- 추천 팀: %2$s\n" +
-                        "- 팀 기록: %3$s\n" +
-                        "- 사용자 취향: %4$s\n\n" +
-                        "자, %2$s이 왜 야구팬님의 인생 구단이 되어야 하는지 예의를 갖춰서 능글맞게 꼬셔봐!",
-                year, teamName, stats, userPreference
+                        "1. **시점**: 현재는 2026년. 추천하는 연도(%1$s년)는 '과거의 전설'로 묘사할 것.\n" +
+                        "2. **서사**: 기록(%3$s)과 사용자의 취향(%4$s)을 연결해 '인생 구단'임을 확신시켜줄 것.\n" +
+                        "3. **완결성**: 3~4문장 이내로 작성하고 마침표로 끝낼 것.\n\n" +
+                        "대상 데이터: %1$s년 %2$s (기록: %3$s / 취향: %4$s)",
+                year, teamName, cleanedStats, userPreference
         );
+
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
         payload.put("max_tokens", 600);
-        payload.put("temperature", 0.6); // 안정성을 위해 살짝 낮춤
+        payload.put("temperature", 0.7);
 
         JSONArray messages = new JSONArray();
         messages.put(new JSONObject().put("role", "user").put("content", prompt));
@@ -59,13 +55,15 @@ public class RecommendedBedrockService {
                     .body(SdkBytes.fromUtf8String(payload.toString()))
                     .build();
 
-            InvokeModelResponse response = client.invokeModel(request);
+            InvokeModelResponse response = bedrockRuntimeClient.invokeModel(request);
             JSONObject resp = new JSONObject(response.body().asUtf8String());
-            return resp.getJSONArray("content").getJSONObject(0).getString("text");
+
+            // Claude 3 모델은 응답 구조가 'content' 배열 내에 'text' 필드가 있음
+            return resp.getJSONArray("content").getJSONObject(0).getString("text").trim();
+
         } catch (Exception e) {
-            log.error(">>>> [BEDROCK ERROR] 원인: {}", e.getMessage()); // 로그에 에러 찍기
-            e.printStackTrace(); // 상세 스택트레이스 출력
-            return "AI 분석 실패 원인: " + e.getMessage();
+            log.error(">>>> [BEDROCK ERROR] : {}", e.getMessage());
+            return String.format("%s년 %s은 정말 대단한 팀이었거든요! 직접 확인해 보시면 깜짝 놀라실 거예요.", year, teamName);
         }
     }
 }
