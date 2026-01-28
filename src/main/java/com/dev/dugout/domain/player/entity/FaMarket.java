@@ -69,4 +69,7 @@ public class FaMarket {
 
     @Column(name = "current_salary") // 현재 연봉
     private Long currentSalary;
+
+    @Column(name = "fa_status", length = 20) //fa 상태
+    private String faStatus;
 }
