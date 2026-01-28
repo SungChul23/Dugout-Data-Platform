@@ -68,7 +68,7 @@ public class FaMarket {
     private String playerIntro;
 
     @Column(name = "current_salary") // 현재 연봉
-    private Long currentSalary;
+    private String currentSalary;
 
     @Column(name = "fa_status", length = 20) //fa 상태
     private String faStatus;
