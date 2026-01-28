@@ -5,19 +5,23 @@ import lombok.Getter;
 import lombok.Setter;
 import java.math.BigDecimal;
 @Entity
-@Table(name = "fa_market")
 @Getter
 @Setter
-@IdClass(FaMarketId.class) // pocde + 년도 = 복합키 사용
+@Table(name = "fa_market",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"pcode", "year"}) // 중복 데이터 방지용 제약
+        })
 public class FaMarket {
 
     @Id
-    @Column(length = 20)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 증가 ID
+    private Long id;
+
+    @Column(length = 20, nullable = false)
     private String pcode;
 
-    @Id
+    @Column(nullable = false)
     private Integer year;
-
     @Column(name = "player_name", length = 50)
     private String playerName;
 
