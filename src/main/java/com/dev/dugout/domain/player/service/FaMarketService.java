@@ -33,6 +33,7 @@ public class FaMarketService {
                         .grade(entity.getGrade())
                         .currentSalary(entity.getCurrentSalary())
                         .playerIntro(entity.getPlayerIntro())
+                        .faStatus(entity.getFaStatus())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -59,6 +60,7 @@ public class FaMarketService {
                 .grade(player.getGrade())
                 .currentSalary(player.getCurrentSalary())
                 .aiFeedback(player.getAiFeedback())
+                .faStatus(player.getFaStatus())
                 .statPitching(player.getStatPitching())
                 .statStability(player.getStatStability())
                 .statOffense(player.getStatOffense())
