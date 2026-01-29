@@ -21,11 +21,28 @@ public class S3Service {
     @Value("${aws.s3.bucket}")
     private String bucketName;
 
-    @Value("${aws.s3.master-key}") // 기존 타자 마스터 키
+    @Value("${aws.s3.master-key}") // 타자 성적 예측 마스터 키
     private String masterKey;
 
-    @Value("${aws.s3.pitcher-master-key}") // 투수용 마스터 키 추가
+    @Value("${aws.s3.pitcher-master-key}") // 투수 성적 예측 마스터 키 추가
     private String pitcherMasterKey;
+
+    @Value("${aws.s3.fa-batter-master-key}") // 타자 FA 평가 마스터 키
+    private String faBatterMasterKey;
+    @Value("${aws.s3.fa-pitcher-master-key}") // 투수 FA 평가 마스터 키
+    private String faPitcherMasterKey;
+
+
+    // FA 타자 마스터 데이터 로드
+    public String fetchFaBatterMasterJson() {
+        return fetchFromS3(faBatterMasterKey, "FA 타자");
+    }
+
+    // FA 투수 마스터 데이터 로드
+    public String fetchFaPitcherMasterJson() {
+        return fetchFromS3(faPitcherMasterKey, "FA 투수");
+    }
+
 
     //타자 마스터 데이터 로드
     public String fetchMasterJson() {
