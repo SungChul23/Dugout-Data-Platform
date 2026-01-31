@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping("/api/v1/members")
 @RequiredArgsConstructor
@@ -48,5 +50,13 @@ public class MemberController {
     public ResponseEntity<String> refreshWords() {
         memberService.refreshForbiddenWords();
         return ResponseEntity.ok("금칙어 캐시가 성공적으로 갱신되었습니다!");
+    }
+
+    //로그아웃
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(Principal principal) {
+        // principal.getName()을 하면 필터가 저장해둔 loginId가 바로 나옵니다.
+        memberService.logout(principal.getName());
+        return ResponseEntity.ok("로그아웃 성공");
     }
 }

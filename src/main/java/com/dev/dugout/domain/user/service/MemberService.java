@@ -132,4 +132,18 @@ public class MemberService {
                 );
         return new LoginResponseDto(accessToken, refreshToken, user.getNickname(), user.getFavoriteTeam().getName(),user.getFavoriteTeam().getSlogan());
     }
+
+    @Transactional
+    public void logout(String loginId) {
+        log.info(">>>> [Logout] 유저 {}의 로그아웃 요청을 처리합니다.", loginId);
+
+        // 유저 조회
+        User user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 해당 유저의 리프레시 토큰 삭제 (티켓 회수)
+        refreshTokenRepository.deleteByUser(user);
+
+        log.info(">>>> [Logout] 유저 {}의 리프레시 토큰이 DB에서 삭제되었습니다.", loginId);
+    }
 }

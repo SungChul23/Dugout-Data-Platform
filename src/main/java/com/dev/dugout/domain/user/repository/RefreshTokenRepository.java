@@ -9,4 +9,6 @@ import java.util.Optional;
 //누구의 토큰이냐
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken,Long> {
     Optional<RefreshToken> findByUser(User user);
+
+    void deleteByUser(User user);
 }
