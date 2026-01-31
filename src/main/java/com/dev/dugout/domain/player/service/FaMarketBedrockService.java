@@ -98,7 +98,7 @@ public class FaMarketBedrockService {
     private String invokeBedrock(String prompt,String playerName) {
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 700);
+        payload.put("max_tokens", 1000);
         payload.put("temperature", 0.7);
 
         JSONArray messages = new JSONArray();
