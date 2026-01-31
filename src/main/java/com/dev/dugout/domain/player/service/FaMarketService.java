@@ -7,6 +7,7 @@ import com.dev.dugout.domain.player.entity.FaMarket;
 import com.dev.dugout.domain.player.repository.FaMarketRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FaMarketService {
 
     private final FaMarketRepository faMarketRepository;
@@ -41,14 +43,21 @@ public class FaMarketService {
     // 상세 조회 (쿼리 파라미터 playerId 기반)
     @Transactional
     public FaDetailResponseDto getFaDetail(Long playerId) {
-        FaMarket player = faMarketRepository.findById(playerId)
-                .orElseThrow(() -> new RuntimeException("해당 FA 선수를 찾을 수 없습니다."));
+        log.info("====> [FA Market] 선수 ID: {} 상세 정보 및 리포트 조회 요청", playerId);
 
-        // aiFeedback이 없으면 베드락 호출
+        FaMarket player = faMarketRepository.findById(playerId)
+                .orElseThrow(() -> {
+                    log.error("#### [FA Market ERROR] ID: {} 선수를 DB에서 찾을 수 없습니다.", playerId);
+                    return new RuntimeException("해당 FA 선수를 찾을 수 없습니다.");
+                });
+
         if (player.getAiFeedback() == null || player.getAiFeedback().isEmpty()) {
+            log.info("====> [FA Market] DB에 피드백이 없어 AI 분석을 새로 요청합니다. (대상: {})", player.getPlayerName());
             String report = faMarketBedrockService.generateFaReport(player);
             player.setAiFeedback(report);
             faMarketRepository.save(player);
+        } else {
+            log.info("====> [FA Market] DB에 저장된 기존 AI 피드백을 반환합니다. (대상: {})", player.getPlayerName());
         }
 
         return FaDetailResponseDto.builder()

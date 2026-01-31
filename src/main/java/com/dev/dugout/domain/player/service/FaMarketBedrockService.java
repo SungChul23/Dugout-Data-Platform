@@ -55,15 +55,17 @@ public class FaMarketBedrockService {
     }
 
     public String generateFaReport(FaMarket player) {
-        // DB에서 가져온 현재 선수 객체(player)의 pcode를 가져옴
         String pcode = player.getPcode();
-        // 메모리에 캐싱된 Map에서 해당 pcode를 가진 선수의 과거 데이터를 쏙 뽑아오자
+        log.info("====> [Bedrock 요청] {} 선수(pcode: {})의 리포트 생성을 시작합니다.", player.getPlayerName(), pcode);
+
         String masterContext = faMasterDataMap.getOrDefault(pcode, "유사 과거 사례 정보 없음");
+        if (masterContext.equals("유사 과거 사례 정보 없음")) {
+            log.warn("====> [Bedrock 알림] {} 선수의 과거 유사 사례를 찾을 수 없어 기본 정보로 분석합니다.", player.getPlayerName());
+        }
 
         String prompt = constructFaPrompt(player, masterContext);
-        return invokeBedrock(prompt);
+        return invokeBedrock(prompt, player.getPlayerName());
     }
-
     private String constructFaPrompt(FaMarket player, String masterContext) {
         boolean isPitcher = "투수".equals(player.getPositionType());
         String playerName = player.getPlayerName();
@@ -93,7 +95,7 @@ public class FaMarketBedrockService {
         );
     }
 
-    private String invokeBedrock(String prompt) {
+    private String invokeBedrock(String prompt,String playerName) {
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
         payload.put("max_tokens", 700);
@@ -112,9 +114,12 @@ public class FaMarketBedrockService {
 
             InvokeModelResponse response = bedrockClient.invokeModel(request);
             JSONObject resp = new JSONObject(response.body().asUtf8String());
-            return resp.getJSONArray("content").getJSONObject(0).getString("text");
+            String result = resp.getJSONArray("content").getJSONObject(0).getString("text");
+
+            log.info("====> [AWS SDK] Bedrock 리포트 생성 완료 (대상: {})", playerName);
+            return result;
         } catch (Exception e) {
-            log.error(">>>> [FA BEDROCK ERROR] 리포트 생성 실패: {}", e.getMessage());
+            log.error("#### [BEDROCK ERROR] {} 선수 리포트 생성 실패: {}", playerName, e.getMessage());
             return "현재 해당 선수의 FA 시장 가치를 분석 중입니다. 잠시 후 확인해 주세요.";
         }
     }
