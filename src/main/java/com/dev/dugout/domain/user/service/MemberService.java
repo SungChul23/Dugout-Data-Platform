@@ -105,7 +105,7 @@ public class MemberService {
         return new NicknameCheckResponseDto(true, "사용 가능한 닉네임입니다.");
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponseDto getLoginUserInfo(LoginRequestDto loginDto) {
         User user = userRepository.findByLoginIdWithTeam(loginDto.getEmail()).orElse(null);
 
