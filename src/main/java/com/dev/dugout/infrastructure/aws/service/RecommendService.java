@@ -50,17 +50,15 @@ public class RecommendService {
         String sql = String.format(
                 "SELECT h.year, h.\"팀명\", " +
                         "CAST(h.hr AS DOUBLE), CAST(h.avg AS DOUBLE), CAST(p.era AS DOUBLE), CAST(h.ops AS DOUBLE), " +
-                        "( (CAST(h.hr AS DOUBLE) / 234.0 * %.4f) + " + // 홈런 선호
-                        "(CAST(h.avg AS DOUBLE) / 0.300 * %.4f) + " + // 안타를 많이치는 정교한 야구 선호
-                        "((5.0 - CAST(p.era AS DOUBLE)) / 5.0 * %.4f) + " + // 압도적인 선발진
-                        "((CAST(p.sv AS DOUBLE) + CAST(p.hld AS DOUBLE)) / 140.0 * %.4f) + " + //경기 후반을 든든하게 막아주는 불펜진을 선호
-                        "(CAST(h.ops AS DOUBLE) / 1.0 * %.4f) + " + //출루를 많이 하고 효율적인 공격을 하는 팀
-                        "(CAST(p.wpct AS DOUBLE) / 1.0 * %.4f) ) AS total_score " + //이기는 경기를 확실히 가져오는 승률 높은 팀
-                        //타자(h)와 투수(p) 테이블을 연도와 팀ID로 조인
+                        "CAST(p.sv AS DOUBLE), CAST(p.hld AS DOUBLE), " +
+                        "( (CAST(h.hr AS DOUBLE) / 234.0 * %.4f) + " +
+                        "(CAST(h.avg AS DOUBLE) / 0.300 * %.4f) + " +
+                        "((5.0 - CAST(p.era AS DOUBLE)) / 5.0 * %.4f) + " +
+                        "((CAST(p.sv AS DOUBLE) + CAST(p.hld AS DOUBLE)) / 140.0 * %.4f) + " +
+                        "(CAST(h.ops AS DOUBLE) / 1.0 * %.4f) + " +
+                        "(CAST(p.wpct AS DOUBLE) / 1.0 * %.4f) ) AS total_score " +
                         "FROM type_hitter h JOIN type_pitcher p ON h.year = p.year AND h.team_id = p.team_id " +
-                        //연도 파티션을 활용하여 스캔 데이터 범위 축소
                         "WHERE h.year >= '%d' " +
-                        //계산된 가중치 점수가 가장 높은 '인생 팀' 단 1개를 선정
                         "ORDER BY total_score DESC LIMIT 1",
                 w1, w2, w3, w4, w5, w6, request.getStartYear()
         );
@@ -99,10 +97,13 @@ public class RecommendService {
             String avg = data.get(3).varCharValue();
             String era = data.get(4).varCharValue();
             String ops = data.get(5).varCharValue();
-            double totalScore = Double.parseDouble(data.get(6).varCharValue());
+            String sv = data.get(6).varCharValue();   // <--- 인덱스 6 추가
+            String hld = data.get(7).varCharValue();  // <--- 인덱스 7 추가
+            double totalScore = Double.parseDouble(data.get(8).varCharValue()); // <--- 인덱스 8로 밀림
 
             String fullTeamName = FULL_TEAM_NAMES.getOrDefault(dbTeamName, dbTeamName + " 구단");
-            String statsSummary = String.format("홈런 %s개, 타율 %s, ERA %s, OPS %s", hr, avg, era, ops);
+            String statsSummary = String.format("홈런 %s개, 타율 %s, ERA %s, OPS %s, 세이브 %s, 홀드 %s",
+                    hr, avg, era, ops, sv, hld);
 
             // [LOG] 아테나 결과 확인
             log.info(">>>> [ATHENA RESULT] 매칭 성공! -> {}년 {} (Score: {})", year, fullTeamName, totalScore);
