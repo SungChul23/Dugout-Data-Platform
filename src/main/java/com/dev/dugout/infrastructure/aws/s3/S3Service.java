@@ -22,7 +22,7 @@ public class S3Service {
     private String bucketName;
 
     @Value("${aws.s3.master-key}") // 타자 성적 예측 마스터 키
-    private String masterKey;
+    private String batterMasterKey;
 
     @Value("${aws.s3.pitcher-master-key}") // 투수 성적 예측 마스터 키 추가
     private String pitcherMasterKey;
@@ -46,7 +46,7 @@ public class S3Service {
 
     //타자 마스터 데이터 로드
     public String fetchMasterJson() {
-        return fetchFromS3(masterKey, "타자");
+        return fetchFromS3(batterMasterKey, "타자");
     }
 
     //투수 마스터 데이터 로드
