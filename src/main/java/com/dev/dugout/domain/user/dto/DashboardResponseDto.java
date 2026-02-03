@@ -1,14 +1,19 @@
 package com.dev.dugout.domain.user.dto;
 
+import com.dev.dugout.domain.team.dto.NewsItemDto;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
 @AllArgsConstructor
+@Builder
 public class DashboardResponseDto {
-    private String favoriteTeamName;
-    private String teamSlogan;
-    private List<PlayerInsightDto> insights; // 항상 사이즈 3 유지
+    private String favoriteTeamName; //선호 팀
+    private String teamSlogan; //팀 슬로건
+    private String bookingUrl; //티켓 예약
+    private List<PlayerInsightDto> insights; // 선수 성적 예측
+    private List<NewsItemDto> news; // 뉴스
 }

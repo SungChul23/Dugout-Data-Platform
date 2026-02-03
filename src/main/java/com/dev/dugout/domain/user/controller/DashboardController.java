@@ -18,9 +18,12 @@ public class DashboardController {
 
     // 대시보드 진입 시 호출되는 API
     @GetMapping
-    public ResponseEntity<DashboardResponseDto> getDashboard(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+    public ResponseEntity<DashboardResponseDto> getDashboard(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
         // 현재 로그인한 유저 정보로 대시보드 데이터 조회
-        DashboardResponseDto response = dashboardService.getUserDashboard(userPrincipal.getUser());
+        DashboardResponseDto response =
+                dashboardService.getUserDashboard(userPrincipal.getUser());
         return ResponseEntity.ok(response);
     }
 }

@@ -2,6 +2,10 @@ package com.dev.dugout.domain.user.service;
 
 
 import com.dev.dugout.domain.player.entity.Player;
+import com.dev.dugout.domain.team.dto.NewsItemDto;
+import com.dev.dugout.domain.team.dto.NewsResponseDto;
+import com.dev.dugout.domain.team.entity.Team;
+import com.dev.dugout.domain.team.service.NewsService;
 import com.dev.dugout.domain.user.dto.DashboardResponseDto;
 import com.dev.dugout.domain.user.dto.PlayerInsightDto;
 import com.dev.dugout.domain.user.entity.User;
@@ -18,6 +22,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +30,7 @@ public class DashboardService {
     private final UserDashboardRepository userDashboardRepository;
     private final PredictionResultRepository predictionResultRepository;
     private final UserRepository userRepository;
+    private final NewsService newsService; // 기존 뉴스 서비스 디펜던시 인젝션 주입
 
     @Transactional(readOnly = true)
     public DashboardResponseDto getUserDashboard(User user) {
@@ -33,6 +39,18 @@ public class DashboardService {
 
         List<UserDashboard> userSelections = userDashboardRepository.findByUser(user);
         List<PlayerInsightDto> insights = new ArrayList<>();
+
+        //팀 엔티티 선언
+        Team team = managedUser.getFavoriteTeam();
+
+        // 뉴스 데이터 처리 + 혹시나 null 방어
+        List<NewsItemDto> limitedNews = Optional.ofNullable
+                        (newsService.getKboNews(team.getName()))
+                .map(NewsResponseDto::getItems)
+                .orElse(new ArrayList<>())
+                .stream()
+                .limit(3)
+                .collect(Collectors.toList());
 
         for (int slot = 1; slot <= 3; slot++) {
             final int currentSlot = slot;
@@ -71,6 +89,12 @@ public class DashboardService {
                         .build());
             }
         }
-        return new DashboardResponseDto(managedUser.getFavoriteTeam().getName(), managedUser.getFavoriteTeam().getSlogan(), insights);
+        return DashboardResponseDto.builder()
+                .favoriteTeamName(team.getName())
+                .teamSlogan(team.getSlogan())
+                .bookingUrl(team.getBookingUrl())
+                .insights(insights)
+                .news(limitedNews)
+                .build();
     }
 }
