@@ -1,6 +1,7 @@
 package com.dev.dugout.domain.team.entity;
 
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
@@ -23,5 +24,7 @@ public class Team {
     private String city;
     private String stadiumName; //"현재 주력 홈구장" - 추후 경기장이 수정 될 수도 있으니
     private String slogan; // 팀 슬로건
+    @Column(name = "booking_url")
+    private String bookingUrl; // 팀 별 티켓 구매 사이트
 
 }
