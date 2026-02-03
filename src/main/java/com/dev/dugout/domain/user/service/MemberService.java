@@ -7,7 +7,6 @@ import com.dev.dugout.domain.user.entity.RefreshToken;
 import com.dev.dugout.domain.user.entity.User;
 import com.dev.dugout.domain.user.repository.ForbiddenWordRepository;
 import com.dev.dugout.domain.user.repository.RefreshTokenRepository;
-import com.dev.dugout.domain.user.repository.TeamRepository;
 import com.dev.dugout.domain.user.repository.UserRepository;
 import com.dev.dugout.global.jwt.JwtTokenProvider;
 import jakarta.annotation.PostConstruct;
@@ -16,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.dev.dugout.domain.team.repository.TeamRepository;
 
 
 import java.util.List;

@@ -20,7 +20,7 @@ public class TeamTicketService {
     @Transactional(readOnly = true)
     public List<TeamTicketResponseDto> getAllTeamBookingInfo() {
         //DB에서 모든 팀 정보를 가져옴
-        List<Team> allTeams = teamRepository.findAll();
+        List<Team> allTeams = teamRepository.findAllByOrderByNameAsc();
 
         //엔티티를 DTO로 변환하여 리스트로 반환
         return allTeams.stream()
