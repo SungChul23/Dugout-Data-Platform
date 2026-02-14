@@ -46,4 +46,7 @@ public class Player {
     //선수 출생년도
     private String birth ;
 
+    // 선수 유형 ex) 거포, 마당쇠 등..
+    private String label;
+
 }
