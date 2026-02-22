@@ -45,14 +45,24 @@ public class ReportBedrockService {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject obj = jsonArray.getJSONObject(i);
 
-                    // pcode로 식별자 통일 (타입 안정성을 위해 String.valueOf 사용)
-                    String pcode = String.valueOf(obj.get("pcode"));
+                    // 1. kbo_pcode가 있는지 먼저 확인하고, 없으면 pcode를 찾습니다.
+                    String pcode;
+                    if (obj.has("kbo_pcode")) {
+                        pcode = String.valueOf(obj.get("kbo_pcode"));
+                    } else if (obj.has("pcode")) {
+                        pcode = String.valueOf(obj.get("pcode"));
+                    } else {
+                        // 둘 다 없는 경우 로그를 남기고 넘어갑니다.
+                        log.warn("#### [{}] {}번째 데이터에 식별자(pcode)가 없습니다.", type, i);
+                        continue;
+                    }
 
-                    // 전체 JSON 객체를 문자열로 저장하여 Bedrock에게 Full Context 제공
+                    // 전체 JSON 객체를 문자열로 저장하여 캐싱
                     playerMasterDataMap.put(pcode, obj.toString());
                 }
                 log.info("====> [성공] {} 명의 {} 데이터를 메모리에 캐싱했습니다.", jsonArray.length(), type);
             } catch (Exception e) {
+                // 이 로그가 사용자님이 보신 ERROR 로그입니다.
                 log.error("#### [초기화 실패] {} 데이터 로드 중 오류: {}", type, e.getMessage());
             }
         }
