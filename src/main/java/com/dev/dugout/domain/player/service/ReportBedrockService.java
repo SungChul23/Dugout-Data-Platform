@@ -86,45 +86,59 @@ public class ReportBedrockService {
     //[타자용 프롬프트 생성]
     private String constructHitterPrompt(PredictionResult pred, String s3Context) {
         String playerName = pred.getPlayer().getName();
-        String shapSummary = extractHitterShap(s3Context);
 
-        // 2025년 실적 추출
-        String perf2025 = "데이터 확인 중";
+        // 2025년 상세 실적 및 예측 보조 데이터 추출 (JSON 파싱 강화)
+        String detailedContext = "데이터 분석 중";
         try {
             JSONObject json = new JSONObject(s3Context);
             JSONObject p2025 = json.getJSONObject("performance_2025");
-            perf2025 = String.format("타율 %.3f, 홈런 %d개, OPS %.3f",
-                    p2025.getDouble("avg"), p2025.getInt("hr"), p2025.getDouble("ops"));
-        } catch (Exception ignored) {
-        }
+
+            // 리포트의 풍성함을 위해 더 많은 지표 포함
+            detailedContext = String.format(
+                    "2025 실적: 타율 %.3f, 출루율 %.3f, 장타율 %.3f, OPS %.3f, 홈런 %d개\n" +
+                            "특이사항: %s",
+                    p2025.optDouble("avg"), p2025.optDouble("obp"), p2025.optDouble("slg"),
+                    p2025.optDouble("ops"), p2025.optInt("hr"),
+                    "멀티히트 및 결승타 등 클러치 상황에서의 기여도 높음" // 필요 시 JSON에서 추출
+            );
+        } catch (Exception ignored) {}
+
+        String shapSummary = extractHitterShap(s3Context);
 
         return String.format(
-                "너는 KBO 리그의 전설적인 스카우터이자 데이터 분석가입니다. 아래 데이터를 바탕으로 %s 선수의 '2026 시즌 프리뷰 리포트'를 작성하십시오.\n\n" +
+                "너는 KBO 리그의 전설적인 스카우터이자 최고의 데이터 분석 전문가입니다. " +
+                        "아래의 정밀 데이터를 분석하여 %s 선수의 '2026 시즌 프리뷰 정밀 리포트'를 작성하십시오.\n\n" +
 
-                        "[스카우팅 기초 데이터]\n" +
-                        "- 선수: %s\n" +
-                        "- 2025년 기록: %s\n" +
-                        "- 2026년 예측 수치:\n" +
-                        "  * 타율: %.3f (예측 범위: %.3f ~ %.3f)\n" +
-                        "  * 홈런: %d개 (예측 범위: %d ~ %d)\n" +
-                        "  * OPS: %.3f (예측 범위: %.3f ~ %.3f)\n" +
-                        "- 주요 분석 요인 (SHAP): \n%s\n\n" +
+                        "[분석 대상 데이터]\n" +
+                        "- 선수명: %s\n" +
+                        "- %s\n" +
+                        "- 2026 예측 지표 (중앙값 및 퍼포먼스 범위):\n" +
+                        "  1) 타율(AVG): 예측 %.3f (최저 %.3f ~ 최고 %.3f)\n" +
+                        "  2) 출루율(OBP): 예측 %.3f (최저 %.3f ~ 최고 %.3f)\n" +
+                        "  3) 장타율(SLG): 예측 %.3f (최저 %.3f ~ 최고 %.3f)\n" +
+                        "  4) OPS: 예측 %.3f (최저 %.3f ~ 최고 %.3f)\n" +
+                        "  5) 홈런(HR): 예측 %d개 (최저 %d ~ 최고 %d)\n" +
+                        "- 모델 분석 동력(상승/하락 요인 데이터): \n%s\n\n" +
 
-                        "[리포트 작성 지침 - 필독]\n" +
-                        "1. **첫 줄 도입부**: 선수의 현재 위상을 상징하는 '강렬한 수식어'와 호칭으로 시작하여 팬들의 기대감을 고조시키십시오.\n" +
-                        "2. **구조화된 소제목**: 각 섹션은 '1. 2026 시즌 타율 전망: \"문구\"' 처럼 숫자로 시작하고 데이터의 의미를 담은 매력적인 소제목을 붙이십시오.\n" +
-                        "3. **데이터의 스토리텔링**: 수치를 단순히 나열하지 마십시오. 'BABIP이 낮다'면 '불운을 뚫고 타격감을 유지했다'는 식으로, '삼진율이 높다'면 '공격적인 성향이 장타력을 이끈다'는 식으로 해석하십시오.\n" +
-                        "4. **기술 용어 절대 금지**: '앙상블 모델', 'SHAP', '피처' 등 기계적인 단어 대신 '분석 결과', '상승의 원동력', '주의해야 할 변수' 등으로 표현하십시오.\n" +
-                        "5. **문단 구성**:\n" +
-                        "   - 1섹션: 2026 전체 전망 (전년 대비 변화와 예측 범위 언급)\n" +
-                        "   - 2섹션: 성장을 이끄는 핵심 동력 (상승 요인 기반 분석)\n" +
-                        "   - 3섹션: 경계해야 할 변수 (하락 요인 기반 분석)\n" +
-                        "   - 4섹션: 최종 결론 (팬들에게 주는 확신)\n\n" +
-                        "- 말투: 전문가답고 열정적인 경어체(~합니다)를 사용하십시오.",
-                playerName, playerName, perf2025,
+                        "[리포트 작성 가이드라인]\n" +
+                        "1. **도입부 (2025 시즌 리뷰)**: '1. 2025 시즌 리뷰: \"문구\"' 형식으로 시작하십시오. 선수의 위상을 상징하는 강렬한 수식어를 사용하고, 문구는 반드시 **볼드체**로 강조하며 작년 성적이 팀에 준 임팩트를 서술하십시오.\n" +
+                        "2. **퍼포먼스 가이드 (Performance Range)**: 예측치의 '범위(Min~Max)'에 집중하십시오. '최악의 시나리오에서도 이 정도는 해준다'는 안정감과 '터지면 이 정도까지 간다'는 고점을 스토리텔링으로 풀어내십시오.\n" +
+                        "3. **동력 및 리스크 분석**: 상승 동력은 🚀, 하락 리스크는 ⚠️ 이모지를 사용하십시오. 단어(예: **체력 과부하**, **결승타 능력**)에 **볼드체**를 적용하십시오.  수치를 나열하지 말고 '체력 과부하', '선구안의 완성' 등 야구적인 언어로 해석하며 핵심 원인이 되는 단어(예: **체력 과부하**, **결승타 능력**)에 **볼드체**를 적용하십시오..\n" +
+                        "4. **핵심 인사이트 (Deep Dive)**: 데이터 중 가장 흥미로운 지표(예: BABIP, 삼진율 등) 하나를 골라 '이것은 운이 아니라 실력'임을 강조하거나 반등의 열쇠임을 짚어주십시오. 또한 **볼드체**를 결합하여 강렬하게 전달하십시오.\n" +
+                        "5. **전략적 권고 및 총평**: 구단 프런트나 감독에게 제언하는 '최종 권고 사항'을 포함하고, 마지막은 '2026 시즌 총평: \"문구\"'와 함께 선수의 가치를 정의하며 총평 문구 역시 **볼드체**로 강조하며 마무리하십시오.\n\n" +
+
+                        "[주의 사항]\n" +
+                        "- 모든 소제목과 핵심 결론, 그리고 수치 데이터는 **볼드체(**...**)**를 적극적으로 사용하여 사용자가 한눈에 핵심을 파악할 수 있게 하십시오.\n" +
+                        "- 'SHAP', '모델', '피처', '앙상블' 같은 데이터 과학 용어는 절대 사용하지 마십시오.\n" +
+                        "- 말투: 전문가의 신뢰감이 느껴지면서도 현장감이 살아있는 열정적인 경어체(~합니다)를 사용하십시오.\n" +
+                        "- 가독성을 위해 소제목과 볼드(**)를 적극적으로 활용하십시오.",
+
+                playerName, playerName, detailedContext,
                 pred.getPredAvg(), pred.getAvgMin(), pred.getAvgMax(),
-                pred.getPredHr(), pred.getHrMin(), pred.getHrMax(),
+                pred.getPredObp(), pred.getObpMin(), pred.getObpMax(), // OBP/SLG 변수명은 환경에 맞게 조정하세요
+                pred.getPredSlg(), pred.getSlgMin(), pred.getSlgMax(),
                 pred.getPredOps(), pred.getOpsMin(), pred.getOpsMax(),
+                pred.getPredHr(), pred.getHrMin(), pred.getHrMax(),
                 shapSummary
         );
     }
@@ -220,7 +234,7 @@ public class ReportBedrockService {
     private String invokeBedrock(String prompt) {
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 1000);
+        payload.put("max_tokens", 1200);
         payload.put("temperature", 0.7);
 
         JSONArray messages = new JSONArray();
