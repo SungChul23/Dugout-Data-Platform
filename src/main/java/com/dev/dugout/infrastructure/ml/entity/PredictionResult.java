@@ -8,13 +8,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "prediction_result")
+@Table(name = "prediction_result", indexes = {
+        @Index(name = "idx_player_season", columnList = "player_id, target_season")
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class PredictionResult {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long predictId;
@@ -23,44 +26,82 @@ public class PredictionResult {
     @JoinColumn(name = "player_id", nullable = false)
     private Player player;
 
-    @Column(nullable = false)
+    @Column(name = "target_season", nullable = false, length = 10)
     private String targetSeason; // "2026"
 
-    // 핵심 지표 분리 (정렬/조회 최적화)
+    // --- [타자 데이터 (Batting Metrics)] ---
+
+    // 타율 (AVG)
     @Column(precision = 5, scale = 3)
-    private BigDecimal predAvg;      // 예상 타율
-
-    private Integer predHr;      // 예상 홈런
-
+    private BigDecimal currAvg;
     @Column(precision = 5, scale = 3)
-    private BigDecimal predOps;      // 예상 OPS
-
-    // 전후비교
+    private BigDecimal predAvg;
     @Column(precision = 5, scale = 3)
     private BigDecimal avgDiff;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal avgMin;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal avgMax;
 
-    private Integer hrDiff;
+    // 출루율 (OBP)
+    @Column(precision = 5, scale = 3)
+    private BigDecimal currObp;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal predObp;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal diffObp;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal obpMin;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal obpMax;
 
+    // 장타율 (SLG)
+    @Column(precision = 5, scale = 3)
+    private BigDecimal currSlg;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal predSlg;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal diffSlg;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal slgMin;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal slgMax;
+
+    // OPS
+    @Column(precision = 5, scale = 3)
+    private BigDecimal currOps;
+    @Column(precision = 5, scale = 3)
+    private BigDecimal predOps;
     @Column(precision = 5, scale = 3)
     private BigDecimal opsDiff;
-
-    //투수 지표
     @Column(precision = 5, scale = 3)
-    private BigDecimal predEra;
-
+    private BigDecimal opsMin;
     @Column(precision = 5, scale = 3)
-    private BigDecimal predWhip;
+    private BigDecimal opsMax;
 
-    @Column(precision = 5, scale = 3)
-    private BigDecimal eraEliteProb;
+    // 홈런 (HR)
+    private Integer currHr;
+    private Integer predHr;
+    private Integer hrDiff;
+    private Integer hrMin;
+    private Integer hrMax;
 
-    @Column(precision = 5, scale = 3)
-    private BigDecimal whipEliteProb;
+    // --- [투수 데이터 (Pitching Metrics)] ---
 
+    @Column(precision = 7, scale = 6)
+    private BigDecimal probElite;         // 엘리트 등극 확률
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal rolePercentileTop; // 해당 보직 내 상위 %
+
+    private Integer roleRank;             // 해당 보직 내 순위
+    private Integer roleTotal;            // 해당 보직 전체 인원수
+
+    // --- [공통 및 분석용 데이터] ---
 
     @Column(columnDefinition = "TEXT")
-    private String insightJson;  // Bedrock 상세 분석용 원본 데이터
+    private String insightJson;           // AI 상세 분석 리포트
 
-    private LocalDateTime predictedAt;
+    @Builder.Default
+    private LocalDateTime predictedAt = LocalDateTime.now();
 }
-

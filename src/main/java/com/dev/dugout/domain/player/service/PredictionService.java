@@ -11,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 @Slf4j
@@ -74,26 +72,23 @@ public class PredictionService {
         if ("투수".equals(player.getPositionType())) {
             log.info("====> [투수 데이터 구성] 선수: {}", player.getName());
             // 투수는 현재 성적(ERA, WHIP)과 엘리트 확률 정보를 전달
-            builder.currentEra(pred.getPredEra())
-                    .currentWhip(pred.getPredWhip())
-                    .eraEliteProb(pred.getEraEliteProb())
-                    .whipEliteProb(pred.getWhipEliteProb());
+            builder.probElite(pred.getProbElite())
+                    .rolePercentileTop(pred.getRolePercentileTop())
+                    .roleRank(pred.getRoleRank())
+                    .roleTotal(pred.getRoleTotal());
         } else {
             log.info("====> [타자 데이터 구성] 선수: {}", player.getName());
-            // 타자는 기존대로 예측치와 변화량을 계산하여 전달
-            BigDecimal currentAvg = pred.getPredAvg()
-                    .subtract(pred.getAvgDiff() != null ? pred.getAvgDiff() : BigDecimal.ZERO)
-                    .setScale(3, RoundingMode.HALF_UP);
-
-            BigDecimal currentOps = pred.getPredOps()
-                    .subtract(pred.getOpsDiff() != null ? pred.getOpsDiff() : BigDecimal.ZERO)
-                    .setScale(3, RoundingMode.HALF_UP);
-
-            Integer currentHr = pred.getPredHr() - (pred.getHrDiff() != null ? pred.getHrDiff() : 0);
-
-            builder.predAvg(pred.getPredAvg()).predHr(pred.getPredHr()).predOps(pred.getPredOps())
-                    .avgDiff(pred.getAvgDiff()).hrDiff(pred.getHrDiff()).opsDiff(pred.getOpsDiff())
-                    .currentAvg(currentAvg).currentHr(currentHr).currentOps(currentOps);
+            // 타자: 모든 상세 지표 매핑
+            builder.currAvg(pred.getCurrAvg()).predAvg(pred.getPredAvg()).avgDiff(pred.getAvgDiff())
+                    .avgMin(pred.getAvgMin()).avgMax(pred.getAvgMax())
+                    .currObp(pred.getCurrObp()).predObp(pred.getPredObp()).diffObp(pred.getDiffObp())
+                    .obpMin(pred.getObpMin()).obpMax(pred.getObpMax())
+                    .currSlg(pred.getCurrSlg()).predSlg(pred.getPredSlg()).diffSlg(pred.getDiffSlg())
+                    .slgMin(pred.getSlgMin()).slgMax(pred.getSlgMax())
+                    .currOps(pred.getCurrOps()).predOps(pred.getPredOps()).opsDiff(pred.getOpsDiff())
+                    .opsMin(pred.getOpsMin()).opsMax(pred.getOpsMax())
+                    .currHr(pred.getCurrHr()).predHr(pred.getPredHr()).hrDiff(pred.getHrDiff())
+                    .hrMin(pred.getHrMin()).hrMax(pred.getHrMax());
         }
         return builder.build();
     }

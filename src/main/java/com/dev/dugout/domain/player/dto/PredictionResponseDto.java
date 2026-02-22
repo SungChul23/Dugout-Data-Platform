@@ -16,22 +16,42 @@ public class PredictionResponseDto {
     private String position;
 
     // --- 타자 전용 지표---
+    private BigDecimal currAvg;
     private BigDecimal predAvg;
-    private Integer predHr;
-    private BigDecimal predOps;
     private BigDecimal avgDiff;
-    private Integer hrDiff;
+    private BigDecimal avgMin;
+    private BigDecimal avgMax;
+
+    private BigDecimal currObp;
+    private BigDecimal predObp;
+    private BigDecimal diffObp;
+    private BigDecimal obpMin;
+    private BigDecimal obpMax;
+
+    private BigDecimal currSlg;
+    private BigDecimal predSlg;
+    private BigDecimal diffSlg;
+    private BigDecimal slgMin;
+    private BigDecimal slgMax;
+
+    private BigDecimal currOps;
+    private BigDecimal predOps;
     private BigDecimal opsDiff;
-    private BigDecimal currentAvg;
-    private Integer currentHr;
-    private BigDecimal currentOps;
+    private BigDecimal opsMin;
+    private BigDecimal opsMax;
 
-    // --- 투수 전용 지표---
-    private BigDecimal currentEra;      // 현재 ERA
-    private BigDecimal currentWhip;     // 현재 WHIP
-    private BigDecimal eraEliteProb;    // 내년 ERA 엘리트 확률
-    private BigDecimal whipEliteProb;   // 내년 WHIP 엘리트 확률
+    private Integer currHr;
+    private Integer predHr;
+    private Integer hrDiff;
+    private Integer hrMin;
+    private Integer hrMax;
 
-    private String aiReport; // 공통 AI 리포트
+    // --- 투수 전용 지표 ---
+    private BigDecimal probElite;         // 엘리트 확률
+    private BigDecimal rolePercentileTop; // 상위 %
+    private Integer roleRank;             // 보직 내 순위
+    private Integer roleTotal;            // 보직 내 전체 인원
+
+    private String aiReport; // AI 분석 리포트
 
 }
