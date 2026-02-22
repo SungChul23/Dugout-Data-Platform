@@ -59,19 +59,19 @@ public class ReportBedrockService {
     }
 
     //포지션에 따라 타자 OR 투수 프롬프트를 분기 생성
-//    public String generatePlayerReport(PredictionResult pred) {
-//        String pcode = pred.getPlayer().getKboPcode();
-//        String s3Context = playerMasterDataMap.getOrDefault(pcode, "기본 선수 정보만 제공됨");
-//
-//        String prompt;
-//        if ("투수".equals(pred.getPlayer().getPositionType())) {
-//            prompt = constructPitcherPrompt(pred, s3Context);
-//        } else {
-//            prompt = constructHitterPrompt(pred, s3Context);
-//        }
-//
-//        return invokeBedrock(prompt);
-//    }
+    public String generatePlayerReport(PredictionResult pred) {
+        String pcode = pred.getPlayer().getKboPcode();
+        String s3Context = playerMasterDataMap.getOrDefault(pcode, "기본 선수 정보만 제공됨");
+
+        String prompt;
+        if ("투수".equals(pred.getPlayer().getPositionType())) {
+            prompt = constructPitcherPrompt(pred, s3Context);
+        } else {
+            prompt = constructHitterPrompt(pred, s3Context);
+        }
+
+        return invokeBedrock(prompt);
+    }
 
     //[타자용 프롬프트 생성]
     private String constructHitterPrompt(PredictionResult pred, String s3Context) {
@@ -135,63 +135,63 @@ public class ReportBedrockService {
     }
 
     // [투수용 프롬프트 생성]
-//    private String constructPitcherPrompt(PredictionResult pred, String s3Context) {
-//        String playerName = pred.getPlayer().getName();
-//
-//        // 확률 수치 변환 (0.49 -> 49.0)
-//        double eraProb = pred.getEraEliteProb() != null ? pred.getEraEliteProb().doubleValue() * 100 : 0;
-//        double whipProb = pred.getWhipEliteProb() != null ? pred.getWhipEliteProb().doubleValue() * 100 : 0;
-//
-//        // 1. JSON에서 투수 전용 키 "age" 추출
-//        int age = 0;
-//        try {
-//            JSONObject json = new JSONObject(s3Context);
-//            // 투수는 age가 실수(25.0)로 들어오는 경우가 많으므로 getDouble 후 변환
-//            age = json.has("age") ? (int) json.getDouble("age") : 0;
-//        } catch (Exception e) {
-//            log.error("투수 나이 파싱 실패: {}", e.getMessage());
-//        }
-//
-//        return String.format(
-//                "너는 야구 데이터 분석 전문 '더그아웃'의 수석 스카우터입니다. "
-//                        + "아래 지침에 따라 %s 선수의 투수 분석 리포트를 작성하십시오.\n\n" + // 1. playerName
-//
-//                        "[2026 시즌 분석 리포트 - %s 선수 (%d세)]\n\n" + // 2. playerName, 3. age
-//
-//                        "분석 활용 데이터:\n" +
-//                        "- 선수 통합 컨텍스트(JSON): %s\n" + // 4. s3Context
-//                        "- 2026 시즌 성적 전망: ERA %.2f, WHIP %.2f\n" + // 5. predEra, 6. predWhip
-//                        "- 엘리트 달성 확률: ERA 상위권 %.1f%%, WHIP 상위권 %.1f%%\n\n" + // 7. eraProb, 8. whipProb
-//
-//                        "리포트 작성 규칙:\n" +
-//                        "- 모든 문장은 정중한 경어체(~합니다)로 작성하십시오.\n" +
-//                        "- 고정 제목([2026 시즌 분석 리포트 - %s 선수]) 이후 소제목 없이 바로 본문을 작성하십시오.\n" + // 9. playerName
-//                        "- 마크다운이나 특수 기호 없이 텍스트와 줄바꿈으로만 구성하십시오.\n" +
-//                        "- 총 3문단으로 구성하며, 각 문단은 아래의 분석 목적을 반드시 달성해야 합니다.\n\n" +
-//
-//                        "분석 구성 흐름:\n" +
-//                        "첫 번째 문단에서는 JSON 내 'history'를 바탕으로 최근 3~5년간의 지표(ERA, WHIP, SO) 변화 추이를 분석하십시오. "
-//                        + "현재의 예측치가 과거의 상승/하락 궤적과 비교했을 때 얼마나 타당한지 객관적으로 평가하십시오.\n\n" +
-//
-//                        "두 번째 문단에서는 이 선수의 특성에 맞는 [맞춤형 데이터 검증]을 수행하십시오. "
-//                        + "만약 과거 성적 중 커리어 하이가 있다면 예측치와 대조하고, 부상 이력이 보인다면 재기 가능성을, "
-//                        + "나이가 많다면 에이징 커브를, 유망주라면 성장 잠재력을 분석하십시오. "
-//                        + "반드시 JSON 데이터를 근거로 이 선수에게 가장 핵심적인 변화 요인이 무엇인지 포착하여 기술하십시오.\n\n" +
-//
-//                        "세 번째 문단에서는 앞선 분석을 종합하여 2026 시즌 이 선수가 팀 마운드에서 맡아야 할 전략적 역할과 "
-//                        + "확정적 주전 혹은 조건부 전력 여부에 대한 최종 스카우팅 결론을 내리십시오.\n",
-//
-//                // 인자 순서 매핑 (정확히 9개)
-//                playerName,             // 1
-//                playerName, age,        // 2, 3 (제목용 이름과 나이)
-//                s3Context,              // 4 (JSON 컨텍스트)
-//                pred.getPredEra(),      // 5
-//                pred.getPredWhip(),     // 6
-//                eraProb,                // 7
-//                whipProb,               // 8
-//                playerName              // 9 (규칙 내 제목용 이름)
-//        );
-//    }
+    private String constructPitcherPrompt(PredictionResult pred, String s3Context) {
+        String playerName = pred.getPlayer().getName();
+
+        // 확률 수치 변환 (0.49 -> 49.0)
+        double eraProb = pred.getEraEliteProb() != null ? pred.getEraEliteProb().doubleValue() * 100 : 0;
+        double whipProb = pred.getWhipEliteProb() != null ? pred.getWhipEliteProb().doubleValue() * 100 : 0;
+
+        // 1. JSON에서 투수 전용 키 "age" 추출
+        int age = 0;
+        try {
+            JSONObject json = new JSONObject(s3Context);
+            // 투수는 age가 실수(25.0)로 들어오는 경우가 많으므로 getDouble 후 변환
+            age = json.has("age") ? (int) json.getDouble("age") : 0;
+        } catch (Exception e) {
+            log.error("투수 나이 파싱 실패: {}", e.getMessage());
+        }
+
+        return String.format(
+                "너는 야구 데이터 분석 전문 '더그아웃'의 수석 스카우터입니다. "
+                        + "아래 지침에 따라 %s 선수의 투수 분석 리포트를 작성하십시오.\n\n" + // 1. playerName
+
+                        "[2026 시즌 분석 리포트 - %s 선수 (%d세)]\n\n" + // 2. playerName, 3. age
+
+                        "분석 활용 데이터:\n" +
+                        "- 선수 통합 컨텍스트(JSON): %s\n" + // 4. s3Context
+                        "- 2026 시즌 성적 전망: ERA %.2f, WHIP %.2f\n" + // 5. predEra, 6. predWhip
+                        "- 엘리트 달성 확률: ERA 상위권 %.1f%%, WHIP 상위권 %.1f%%\n\n" + // 7. eraProb, 8. whipProb
+
+                        "리포트 작성 규칙:\n" +
+                        "- 모든 문장은 정중한 경어체(~합니다)로 작성하십시오.\n" +
+                        "- 고정 제목([2026 시즌 분석 리포트 - %s 선수]) 이후 소제목 없이 바로 본문을 작성하십시오.\n" + // 9. playerName
+                        "- 마크다운이나 특수 기호 없이 텍스트와 줄바꿈으로만 구성하십시오.\n" +
+                        "- 총 3문단으로 구성하며, 각 문단은 아래의 분석 목적을 반드시 달성해야 합니다.\n\n" +
+
+                        "분석 구성 흐름:\n" +
+                        "첫 번째 문단에서는 JSON 내 'history'를 바탕으로 최근 3~5년간의 지표(ERA, WHIP, SO) 변화 추이를 분석하십시오. "
+                        + "현재의 예측치가 과거의 상승/하락 궤적과 비교했을 때 얼마나 타당한지 객관적으로 평가하십시오.\n\n" +
+
+                        "두 번째 문단에서는 이 선수의 특성에 맞는 [맞춤형 데이터 검증]을 수행하십시오. "
+                        + "만약 과거 성적 중 커리어 하이가 있다면 예측치와 대조하고, 부상 이력이 보인다면 재기 가능성을, "
+                        + "나이가 많다면 에이징 커브를, 유망주라면 성장 잠재력을 분석하십시오. "
+                        + "반드시 JSON 데이터를 근거로 이 선수에게 가장 핵심적인 변화 요인이 무엇인지 포착하여 기술하십시오.\n\n" +
+
+                        "세 번째 문단에서는 앞선 분석을 종합하여 2026 시즌 이 선수가 팀 마운드에서 맡아야 할 전략적 역할과 "
+                        + "확정적 주전 혹은 조건부 전력 여부에 대한 최종 스카우팅 결론을 내리십시오.\n",
+
+                // 인자 순서 매핑 (정확히 9개)
+                playerName,             // 1
+                playerName, age,        // 2, 3 (제목용 이름과 나이)
+                s3Context,              // 4 (JSON 컨텍스트)
+                pred.getPredEra(),      // 5
+                pred.getPredWhip(),     // 6
+                eraProb,                // 7
+                whipProb,               // 8
+                playerName              // 9 (규칙 내 제목용 이름)
+        );
+    }
 
     //캐싱된 데이터를 찾아 베드락에게 전달
     private String invokeBedrock(String prompt) {

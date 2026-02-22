@@ -59,7 +59,7 @@ public class PredictionService {
         String report = pred.getInsightJson();
         if (report == null || report.isBlank()) {
             log.info("====> [AI 리포트 생성 중] 대상: {}", player.getName());
-            //report = reportBedrockService.generatePlayerReport(pred);
+            report = reportBedrockService.generatePlayerReport(pred);
             pred.setInsightJson(report);
             predictionRepository.save(pred);
         }
@@ -74,10 +74,10 @@ public class PredictionService {
         if ("투수".equals(player.getPositionType())) {
             log.info("====> [투수 데이터 구성] 선수: {}", player.getName());
             // 투수는 현재 성적(ERA, WHIP)과 엘리트 확률 정보를 전달
-//            builder.currentEra(pred.getPredEra())
-//                    .currentWhip(pred.getPredWhip())
-//                    .eraEliteProb(pred.getEraEliteProb())
-//                    .whipEliteProb(pred.getWhipEliteProb());
+            builder.currentEra(pred.getPredEra())
+                    .currentWhip(pred.getPredWhip())
+                    .eraEliteProb(pred.getEraEliteProb())
+                    .whipEliteProb(pred.getWhipEliteProb());
         } else {
             log.info("====> [타자 데이터 구성] 선수: {}", player.getName());
             // 타자는 기존대로 예측치와 변화량을 계산하여 전달
