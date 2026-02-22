@@ -80,7 +80,9 @@ public class SecurityConfig {
                 "https://*.idx.google.com",
                 "https://*.google.com",
                 "https://*.usercontent.goog",
-                "https://dugout.cloud"
+                "https://dugout.cloud",
+                "https://*.cloudworkstations.dev",
+                "https://*.run.app"
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
