@@ -28,12 +28,16 @@ public class DashboardController {
 
     // 선수추가
     @PostMapping("/player")
-    public ResponseEntity<Void> addPlayer(
+    public ResponseEntity<?> addPlayer(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestBody DashboardRequestDto request) {
-
-        dashboardService.addPlayer(userPrincipal.getUser(), request.getPlayerId(), request.getSlotNumber());
-        return ResponseEntity.ok().build();
+        try {
+            dashboardService.addPlayer(userPrincipal.getUser(), request.getPlayerId());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            // "가득 찼습니다" 메시지를 프론트로 전달
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // 특정 슬롯 삭제

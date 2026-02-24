@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,19 +40,36 @@ public class DashboardService {
 
     //대시보드 선수 추가
     @Transactional
-    public void addPlayer(User user, Long kboPcode, int slotNumber) {
-        // 1. 기존 슬롯 데이터 삭제 (교체 로직)
-        userDashboardRepository.deleteByUserAndSlotNumber(user, slotNumber);
+    public void addPlayer(User user, Long kboPcode) {
+        // 1. 현재 유저가 대시보드에 등록한 리스트를 가져옴
+        List<UserDashboard> currentSelections = userDashboardRepository.findByUser(user);
 
-        // 2. 선수 조회
+        // 2. 최대 3개까지만 허용
+        if (currentSelections.size() >= 3) {
+            throw new RuntimeException("대시보드가 가득 찼습니다. 기존 선수를 제거하고 추가해 주세요.");
+        }
+
+        // 3. 빈 슬롯 찾기 (1, 2, 3번 중 없는 번호 찾기)
+        Set<Integer> occupiedSlots = currentSelections.stream()
+                .map(UserDashboard::getSlotNumber)
+                .collect(Collectors.toSet());
+
+        int targetSlot = -1;
+        for (int i = 1; i <= 3; i++) {
+            if (!occupiedSlots.contains(i)) {
+                targetSlot = i;
+                break;
+            }
+        }
+
+        // 4. 선수 조회 및 저장
         Player player = playerRepository.findByKboPcode(String.valueOf(kboPcode))
                 .orElseThrow(() -> new RuntimeException("선수를 찾을 수 없습니다."));
 
-        // 3. 신규 저장
         userDashboardRepository.save(UserDashboard.builder()
                 .user(user)
                 .player(player)
-                .slotNumber(slotNumber)
+                .slotNumber(targetSlot)
                 .build());
     }
 
