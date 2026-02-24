@@ -57,6 +57,6 @@ public class MemberController {
     public ResponseEntity<String> logout(Principal principal) {
         // principal.getName()을 하면 필터가 저장해둔 loginId가 바로 나옵니다.
         memberService.logout(principal.getName());
-        return ResponseEntity.ok("로그아웃 성공");
+        return ResponseEntity.ok("로그아웃이 완료되었습니다.");
     }
 }
