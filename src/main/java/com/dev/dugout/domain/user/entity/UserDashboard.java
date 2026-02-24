@@ -7,7 +7,6 @@ import com.dev.dugout.domain.player.entity.Player;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_dashboard")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,6 +14,9 @@ import java.time.LocalDateTime;
 @Builder
 //사용자 맞춤형 대시보드
 //회원가입 시에는 비어있다가, 유저가 선수를 추가하면 레코드가 생성
+@Table(name = "user_dashboard", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_slot", columnNames = {"user_id", "slot_number"})
+})
 public class UserDashboard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
