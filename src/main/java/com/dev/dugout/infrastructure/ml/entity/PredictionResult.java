@@ -97,6 +97,22 @@ public class PredictionResult {
     private Integer roleRank;             // 해당 보직 내 순위
     private Integer roleTotal;            // 해당 보직 전체 인원수
 
+    // --- [투수 2025 성적 (Pitching 2025 Performance)] ---
+    @Column(name = "era_2025", precision = 4, scale = 2)
+    private BigDecimal era2025;
+
+    @Column(name = "fip_2025", precision = 4, scale = 2)
+    private BigDecimal fip2025;
+
+    @Column(name = "ip_2025", precision = 6, scale = 3)
+    private BigDecimal ip2025;
+
+    @Column(name = "whip_2025", precision = 4, scale = 2)
+    private BigDecimal whip2025;
+
+    @Column(name = "role", length = 10)
+    private String role;
+
     // --- [공통 및 분석용 데이터] ---
 
     @Column(columnDefinition = "TEXT")
