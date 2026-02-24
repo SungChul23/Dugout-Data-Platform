@@ -44,6 +44,14 @@ public class DashboardService {
         // 1. 현재 유저가 대시보드에 등록한 리스트를 가져옴
         List<UserDashboard> currentSelections = userDashboardRepository.findByUser(user);
 
+        // 1.5 입력받은 kboPcode가 이미 리스트에 있는지 확인
+        boolean isDuplicate = currentSelections.stream()
+                .anyMatch(d -> d.getPlayer().getKboPcode().equals(String.valueOf(kboPcode)));
+
+        if (isDuplicate) {
+            throw new RuntimeException("이미 대시보드에 등록된 선수입니다.");
+        }
+
         // 2. 최대 3개까지만 허용
         if (currentSelections.size() >= 3) {
             throw new RuntimeException("대시보드가 가득 찼습니다. 기존 선수를 제거하고 추가해 주세요.");
