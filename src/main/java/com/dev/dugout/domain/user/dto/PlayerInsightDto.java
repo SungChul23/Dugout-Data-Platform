@@ -17,6 +17,7 @@ public class PlayerInsightDto {
     private Integer slotNumber;
     private Long playerId;
     private String name;
+    private Integer backNumber;
     private String position;
     private String teamCode; // 추가: 선수의 소속 팀 코드 (예: "SS", "HH" 등)
     private boolean isEmpty;

@@ -114,6 +114,7 @@ public class DashboardService {
                         .slotNumber(currentSlot)
                         .playerId(Long.parseLong(player.getKboPcode()))
                         .name(player.getName())
+                        .backNumber(player.getBackNumber())
                         .position(player.getPositionType())
                         // player 엔티티를 통해 팀 코드 직접 추출
                         .teamCode(player.getTeam() != null ? String.valueOf(player.getTeam().getId()) : null)
