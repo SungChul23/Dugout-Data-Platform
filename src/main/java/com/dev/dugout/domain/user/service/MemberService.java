@@ -146,4 +146,22 @@ public class MemberService {
 
         log.info(">>>> [Logout] 유저 {}의 리프레시 토큰이 DB에서 삭제되었습니다.", loginId);
     }
+
+    //회원탈퇴
+    @Transactional
+    public void withdraw(String loginId) {
+        log.info(">>>> [Withdrawal] 유저 {}의 회원탈퇴를 진행합니다.", loginId);
+
+        // 1. 유저 조회
+        User user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 2. 리프레시 토큰 삭제
+        refreshTokenRepository.deleteByUser(user);
+
+        // 3. 유저 삭제
+        userRepository.delete(user);
+
+        log.info(">>>> [Withdrawal] 유저 {}의 모든 데이터(대시보드 포함)가 DB 레벨에서 정리되었습니다.", loginId);
+    }
 }

@@ -6,6 +6,7 @@ import com.dev.dugout.domain.user.dto.NicknameCheckResponseDto;
 import com.dev.dugout.domain.user.dto.SignupRequestDto;
 import com.dev.dugout.domain.user.service.MemberService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/members")
 @RequiredArgsConstructor
+@Slf4j
 public class MemberController {
 
     private final MemberService memberService;
@@ -30,7 +32,6 @@ public class MemberController {
     public ResponseEntity<NicknameCheckResponseDto> checkNickname(@RequestParam String nickname) {
         return ResponseEntity.ok(memberService.checkNicknameAvailability(nickname));
     }
-
 
     //서비스에서 토큰 2개(Access/Refresh)가 포함된 DTO를 응답받음
     @PostMapping("/login")
@@ -55,8 +56,16 @@ public class MemberController {
     //로그아웃
     @PostMapping("/logout")
     public ResponseEntity<String> logout(Principal principal) {
-        // principal.getName()을 하면 필터가 저장해둔 loginId가 바로 나옵니다.
         memberService.logout(principal.getName());
         return ResponseEntity.ok("로그아웃이 완료되었습니다.");
+    }
+
+    // 회원 탈퇴
+    @DeleteMapping("/me")
+    public ResponseEntity<String> withdraw(Principal principal) {
+        log.info(">>>> [Controller] 유저 {}의 회원탈퇴 요청", principal.getName());
+        memberService.withdraw(principal.getName());
+
+        return ResponseEntity.ok("회원탈퇴가 성공적으로 처리되었습니다. 그동안 더그아웃을 이용해주셔서 감사합니다!");
     }
 }
