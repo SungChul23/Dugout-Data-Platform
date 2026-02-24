@@ -16,6 +16,7 @@ import com.dev.dugout.domain.user.repository.UserRepository;
 import com.dev.dugout.infrastructure.ml.entity.PredictionResult;
 import com.dev.dugout.infrastructure.ml.repository.PredictionResultRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DashboardService {
     private final UserDashboardRepository userDashboardRepository;
     private final PredictionResultRepository predictionResultRepository;
@@ -64,7 +66,8 @@ public class DashboardService {
         User managedUser = userRepository.findByLoginIdWithTeam(user.getLoginId())
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        List<UserDashboard> userSelections = userDashboardRepository.findByUser(user);
+        List<UserDashboard> userSelections = userDashboardRepository.findByUser(managedUser);
+        log.info("====> [DB 조회 결과] 유저: {}, 찾은 데이터 개수: {}", managedUser.getLoginId(), userSelections.size());
         List<PlayerInsightDto> insights = new ArrayList<>();
         Team team = managedUser.getFavoriteTeam();
 
@@ -77,6 +80,12 @@ public class DashboardService {
             final int currentSlot = slot;
             Optional<UserDashboard> selection = userSelections.stream()
                     .filter(d -> d.getSlotNumber() == currentSlot).findFirst();
+
+            if (selection.isPresent()) {
+                log.info("====> [대시보드 확인] 슬롯: {}, 선수명: {}", currentSlot, selection.get().getPlayer().getName());
+            } else {
+                log.info("====> [대시보드 확인] 슬롯: {} 은 비어있음", currentSlot);
+            }
 
             if (selection.isPresent()) {
                 Player player = selection.get().getPlayer();
