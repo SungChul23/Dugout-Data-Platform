@@ -76,6 +76,11 @@ public class ReportBedrockService {
         String pcode = pred.getPlayer().getKboPcode();
         String s3Context = playerMasterDataMap.getOrDefault(pcode, "기본 선수 정보만 제공됨");
 
+        if (s3Context == null) {
+            log.warn("#### [데이터 누락] PCODE: {} 에 해당하는 마스터 데이터를 찾을 수 없습니다.", pcode);
+            return "해당 선수의 세부 분석 데이터가 준비되지 않아 리포트를 생성할 수 없습니다.";
+        }
+
         String prompt;
         if ("투수".equals(pred.getPlayer().getPositionType())) {
             prompt = constructPitcherPrompt(pred, s3Context);
@@ -100,7 +105,7 @@ public class ReportBedrockService {
         } catch (Exception ignored) {}
 
         return String.format(
-                "너는 KBO 리그 데이터 전략가이자 수석 스카우터입니다. 아래 지표를 '절대적 근거'로 하여 %s 선수의 리포트를 작성하십시오.\n\n" +
+                "너는 KBO 리그 데이터 전략가이자 수석 스카우터입니다. 아래 제공된 [성적 결정 핵심 지표]를 분석의 '유일한 정답지'로 간주하여 %s 선수의 리포트를 작성하십시오.\n\n" +
 
                         "[분석 기초 데이터]\n" +
                         "- 선수: %s\n" +
@@ -109,23 +114,24 @@ public class ReportBedrockService {
                         "  * AVG(타율): %.3f (범위: %.3f ~ %.3f)\n" +
                         "  * HR(홈런): %d개 (범위: %d ~ %d)\n" +
                         "  * OPS: %.3f (범위: %.3f ~ %.3f)\n" +
-                        "- 핵심 분석 지표 (이 리스트에 없는 지표는 절대 언급 금지): \n%s\n\n" +
+                        "- 성적 결정 핵심 지표 (분석의 핵심 근거): \n%s\n\n" +
 
-                        "[리포트 작성 및 강조 가이드 - 필독]\n" +
-                        "1. **강조 표시 규칙 (중요)**: \n" +
-                        "   - 본문에서 지표 명칭(예: **MH(멀티히트 생산력)**, **BB%%(볼넷률)** 등)이 등장할 때마다 반드시 `**`로 감싸십시오.\n" +
+                        "[리포트 작성 지침 - 데이터 활용 필수]\n" +
+                        "1. **지표 사용 강제**: '성적 결정 핵심 지표'에 나열된 모든 한글 명칭(예: **MH(멀티히트 생산력)** 등)을 본문 서술의 주어로 사용하십시오. 데이터가 없어서 분석이 어렵다는 식의 회피 문장은 절대 금지입니다.\n" +
+                        "2. **강조 표시 규칙**: \n" +
+                        "   - 본문에 지표 이름이 등장할 때마다 반드시 **지표명** 형식을 지키십시오. (예: **BABIP(인플레이 타구 안타 비율)**)\n" +
                         "   - 각 섹션의 마지막에는 해당 문단의 핵심 결론 문장 하나를 통째로 `**`로 감싸 강조하십시오.\n" +
-                        "2. **지표 사용 제한**: '핵심 분석 지표' 리스트에 없는 지표(예: 직선타율, LD%% 등)는 절대 창작해서 쓰지 마십시오. 지표 분석이 불가능하다는 회피성 멘트도 금지입니다.\n" +
-                        "3. **2025년 성적 브릿지**: ## 요약문 바로 아래, 2025년 성적(%s)을 언급하며 올해의 예측치로 이어지는 기술적 개연성을 서술하십시오.\n" +
-                        "4. **소제목 창의성**: ### 소제목의 따옴표(\"\") 안에는 데이터가 시사하는 실제 기술적 결론을 직접 창작해 넣으십시오.\n" +
-                        "5. **문단 구성**:\n" +
+                        "3. **지표 제한**: 제공된 리스트에 없는 지표는 상상해서 쓰지 마십시오. '정신력', '노력' 같은 주관적 단어도 배제하십시오.\n" +
+                        "4. **2025년 성적 브릿지**: ## 요약문 바로 아래, 2025년 성적(%s)이 2026년 예측 결과에 기술적으로 어떤 개연성을 주는지 연결하여 서술하십시오.\n" +
+                        "5. **소제목 완성**: ### 소제목의 따옴표(\"\") 안에는 가이드 텍스트가 아닌, 지표가 시사하는 '기술적 결론'을 직접 창작해 넣으십시오.\n" +
+                        "6. **문단 구성**:\n" +
                         "   - [최상단]: ## [2026년 기술적 위상 요약 한 줄]\n" +
-                        "   - [브릿지]: (2025년 성적 리뷰 및 연결)\n" +
-                        "   - ### 1. 2026 시즌 전체 전망: \"(전체 추세 요약)\"\n" +
-                        "   - ### 2. 성장을 이끄는 기술적 동력: \"(긍정적 지표 효과 요약)\"\n" +
-                        "   - ### 3. 주의해야 할 변수와 리스크: \"(부정적 지표 리스크 요약)\"\n" +
-                        "   - ### 4. 최종 기술 종합 평론: (지표들을 총망라한 상세 기술. 최소 3문장 이상 상세히 서술)\n\n" +
-                        "- 말투: 냉철한 전문가용 경어체(~합니다)를 사용하고 이모지는 금지입니다.",
+                        "   - [브릿지]: (2025년 성적 리뷰 및 2026년과의 기술적 연결 고리 서술)\n" +
+                        "   - ### 1. 2026 시즌 전체 전망: \"(데이터 기반의 성적 추세 요약)\"\n" +
+                        "   - ### 2. 성장을 이끄는 기술적 동력: \"(제공된 상승 기여 지표들의 시너지 요약)\"\n" +
+                        "   - ### 3. 주의해야 할 변수와 리스크: \"(제공된 하락 기여 지표들의 잠재적 리스크 요약)\"\n" +
+                        "   - ### 4. 최종 기술 종합 평론: (지표들을 총망라하여 2026년의 전술적 가치를 상세히 기술. 인사말 금지)\n\n" +
+                        "- 말투: 냉철한 전문가용 경어체(~합니다)를 사용하십시오. 이모지는 금지입니다.",
                 playerName, playerName, perf2025,
                 pred.getPredAvg(), pred.getAvgMin(), pred.getAvgMax(),
                 pred.getPredHr(), pred.getHrMin(), pred.getHrMax(),
@@ -184,31 +190,39 @@ public class ReportBedrockService {
     // 타자용 SHAP 추출 (상위 2개)
     private String extractHitterShap(String s3Context) {
         try {
-            JSONObject shap = new JSONObject(s3Context).getJSONObject("shap_explain");
+            JSONObject json = new JSONObject(s3Context);
+            if (!json.has("shap_explain")) return "세부 지표 데이터가 존재하지 않습니다.";
+
+            JSONObject shap = json.getJSONObject("shap_explain");
             StringBuilder sb = new StringBuilder();
             String[] metrics = {"avg", "ops", "hr"};
 
             for (String m : metrics) {
                 if (!shap.has(m)) continue;
                 JSONObject obj = shap.getJSONObject(m);
-                sb.append("[").append(m.toUpperCase()).append(" 결정 요인]\n");
 
-                sb.append("- 성적 상승 기여: ");
-                JSONArray pos = obj.getJSONArray("top_positive");
-                for (int i = 0; i < Math.min(2, pos.length()); i++) {
-                    sb.append(metricTranslator.translate(pos.getJSONObject(i).getString("feature"))).append(", ");
+                // 상승/하락 요인이 실제 배열인지 확인 후 추출
+                if (obj.has("top_positive")) {
+                    sb.append("[").append(m.toUpperCase()).append(" 상승 동력]: ");
+                    JSONArray pos = obj.getJSONArray("top_positive");
+                    for (int i = 0; i < Math.min(3, pos.length()); i++) { // 상위 3개로 확대
+                        sb.append(metricTranslator.translate(pos.getJSONObject(i).getString("feature"))).append(", ");
+                    }
                 }
 
-                sb.append("\n- 성적 하락 기여: ");
-                JSONArray neg = obj.getJSONArray("top_negative");
-                for (int i = 0; i < Math.min(2, neg.length()); i++) {
-                    sb.append(metricTranslator.translate(neg.getJSONObject(i).getString("feature"))).append(", ");
+                if (obj.has("top_negative")) {
+                    sb.append("\n[").append(m.toUpperCase()).append(" 하락 리스크]: ");
+                    JSONArray neg = obj.getJSONArray("top_negative");
+                    for (int i = 0; i < Math.min(3, neg.length()); i++) {
+                        sb.append(metricTranslator.translate(neg.getJSONObject(i).getString("feature"))).append(", ");
+                    }
                 }
                 sb.append("\n\n");
             }
-            return sb.toString();
+            return sb.toString().isEmpty() ? "추출된 유의미한 지표가 없습니다." : sb.toString();
         } catch (Exception e) {
-            return "핵심 지표 데이터 분석 불가";
+            log.error("#### [SHAP 추출 실패] 에러: {}", e.getMessage());
+            return "데이터 파싱 중 오류가 발생했습니다.";
         }
     }
 
