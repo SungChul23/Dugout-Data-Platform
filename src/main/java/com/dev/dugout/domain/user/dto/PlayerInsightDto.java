@@ -2,6 +2,7 @@ package com.dev.dugout.domain.user.dto;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,7 +20,9 @@ public class PlayerInsightDto {
     private String name;
     private Integer backNumber;
     private String position;
-    private String teamCode; // 추가: 선수의 소속 팀 코드 (예: "SS", "HH" 등)
+    private String teamCode;
+
+    @JsonProperty("isEmpty") // JSON 키 이름을 강제로 isEmpty로 고정
     private boolean isEmpty;
 
     // --- 타자용 지표 ---
