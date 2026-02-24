@@ -1,6 +1,7 @@
 package com.dev.dugout.domain.player.service;
 
 
+import com.dev.dugout.global.common.MetricTranslator;
 import com.dev.dugout.infrastructure.aws.s3.S3Service;
 import com.dev.dugout.infrastructure.ml.entity.PredictionResult;
 import jakarta.annotation.PostConstruct;
@@ -25,6 +26,8 @@ public class ReportBedrockService {
     private final S3Service s3Service;
     private final BedrockRuntimeClient bedrockClient; // Config에서 등록한 Bean 주입
     private final Map<String, String> playerMasterDataMap = new HashMap<>();
+
+    private final MetricTranslator metricTranslator;
 
     //서버 시작 시 S3 마스터 파일을 읽어 메모리에 캐싱
     @PostConstruct
@@ -88,7 +91,6 @@ public class ReportBedrockService {
         String playerName = pred.getPlayer().getName();
         String shapSummary = extractHitterShap(s3Context);
 
-        // 2025년 실적 추출
         String perf2025 = "데이터 확인 중";
         try {
             JSONObject json = new JSONObject(s3Context);
@@ -99,35 +101,34 @@ public class ReportBedrockService {
         }
 
         return String.format(
-                "너는 KBO 리그 데이터 분석가이자 수석 스카우터입니다. 아래 제공된 SHAP 데이터를 기반으로 %s 선수의 '2026 시즌 프리뷰 리포트'를 작성하십시오.\n\n" +
+                "너는 KBO 리그 데이터 분석가이자 수석 스카우터입니다. 아래 데이터를 바탕으로 %s 선수의 '2026 시즌 프리뷰 리포트'를 작성하십시오.\n\n" +
 
-                        "[스카우팅 기초 데이터]\n" +
+                        "[분석 기초 데이터]\n" +
                         "- 선수: %s\n" +
-                        "- 2025년 기록: %s\n" +
-                        "- 2026년 예측 수치:\n" +
+                        "- 2025년 성적: %s\n" +
+                        "- 2026년 예측치:\n" +
                         "  * 타율: %.3f (범위: %.3f ~ %.3f)\n" +
                         "  * 홈런: %d개 (범위: %d ~ %d)\n" +
                         "  * OPS: %.3f (범위: %.3f ~ %.3f)\n" +
-                        "- 분석 핵심 지표 (SHAP 데이터): \n%s\n\n" +
+                        "- 성적 결정 요인 (핵심 지표): \n%s\n\n" +
 
                         "[리포트 작성 지침 - 필독]\n" +
-                        "1. **중복 표현 금지**: '조정기', '안착할 전망', '견고한 타격 메커니즘' 등 특정 문구를 모든 선수에게 반복하지 마십시오. 데이터의 성격에 따라 매번 새로운 통찰을 제시하십시오.\n" +
-                        "2. **최상단 메인 서머리**: 리포트 시작 시 '## '을 사용하여 해당 선수의 2026년 운명을 결정지을 가장 핵심적인 지표(SHAP 기반)를 요약한 강렬한 한 줄을 작성하십시오.\n" +
-                        "3. **창의적인 소제목**: 각 섹션의 제목은 반드시 '### 숫자. 섹션명: \"데이터의 핵심을 담은 개성 있는 문구\"' 형식을 사용하십시오. 예시 문구를 그대로 베끼지 마십시오.\n" +
-                        "4. **SHAP 데이터의 적극적 해석**: 제공된 SHAP 데이터(상승/하락 요인)에 있는 지표들(MH, BB%%, BABIP, GO/AO, Age, HR_trend 등)을 본문 분석의 핵심 근거로 삼으십시오. 지표의 이름만 나열하지 말고 그 지표가 왜 성적 변화를 일으키는지 분석가답게 설명하십시오.\n" +
-                        "5. **강조 구문**: 핵심 지표와 결정적 문장은 ** 강조할 내용 ** 처럼 작성하십시오.\n" +
-                        "6. **문단 구성 가이드**:\n" +
-                        "   - [최상단]: ## [선수의 2026년 핵심 키워드를 담은 한 줄 요약]\n" +
-                        "   - ### 1. 2026 시즌 전체 전망: [전년 대비 성적 변화의 폭과 예측 범위의 의미를 데이터 중심으로 기술]\n" +
-                        "   - ### 2. 성장을 이끄는 핵심 동력: [SHAP 상승 요인(Positive) 지표들을 바탕으로 한 기술적 강점 분석]\n" +
-                        "   - ### 3. 주의해야 할 변수와 리스크: [SHAP 하락 요인(Negative) 지표들을 바탕으로 성적 하락의 원인이나 주의점 분석]\n" +
-                        "   - ###### 4. 최종 기술 종합 평론: [섹션 1~3의 지표들을 총망라하여 2026년 선수의 기술적 위상을 상세하게 서술 (간단히 요약하지 말 것)]\n\n" +
-                        "- 말투: 냉철하고 전문적인 분석가용 경어체(~합니다)를 사용하십시오. 이모지는 절대 금지입니다.",
+                        "1. **금지 용어**: 'SHAP', '피처', '데이터 분석 결과' 등의 기계적인 단어를 절대 사용하지 마십시오. 대신 '성적 결정 요인', '도약의 근거', '지표 분석' 등으로 자연스럽게 표현하십시오.\n" +
+                        "2. **소제목 포맷 엄수**: 모든 섹션의 제목은 반드시 '### 숫자. 섹션명: \"한 줄 요약\"' 형식을 사용하십시오. 특히 4번 섹션은 반드시 '### 4. 최종 기술 종합 평론'으로 작성하여 가독성을 높이십시오.\n" +
+                        "3. **지표 한글 명칭 사용**: 제공된 지표 명칭(멀티히트, 볼넷률 등)을 활용하여 기술적으로 깊이 있게 분석하십시오.\n" +
+                        "4. **강조 구문**: 핵심 수치와 결정적 문장은 ** 강조할 내용 ** 처럼 별표 앞뒤에 공백을 두어 표시하십시오.\n" +
+                        "5. **문단 구성**:\n" +
+                        "   - [최상단]: ## [2026년 기술적 위상 요약]\n" +
+                        "   - ### 1. 2026 시즌 전체 전망: [성적 변동폭과 예측 범위 분석]\n" +
+                        "   - ### 2. 성장을 이끄는 기술적 동력: [상승 기여 지표 기반 분석]\n" +
+                        "   - ### 3. 주의해야 할 변수와 리스크: [하락 기여 지표 기반 분석]\n" +
+                        "   - ### 4. 최종 기술 종합 평론: [지표들을 총망라한 상세한 기술적 총평 (인사말 생략)]\n\n" +
+                        "- 말투: 냉철하고 전문적인 분석가용 경어체(~합니다)를 사용하며, 이모지는 사용하지 마십시오.",
                 playerName, playerName, perf2025,
                 pred.getPredAvg(), pred.getAvgMin(), pred.getAvgMax(),
                 pred.getPredHr(), pred.getHrMin(), pred.getHrMax(),
                 pred.getPredOps(), pred.getOpsMin(), pred.getOpsMax(),
-                shapSummary
+                shapSummary, playerName
         );
     }
 
@@ -177,28 +178,35 @@ public class ReportBedrockService {
                 shapSummary, playerName, pred.getRolePercentileTop()
         );
     }
+
     // 타자용 SHAP 추출 (상위 2개)
     private String extractHitterShap(String s3Context) {
         try {
             JSONObject shap = new JSONObject(s3Context).getJSONObject("shap_explain");
             StringBuilder sb = new StringBuilder();
             String[] metrics = {"avg", "ops", "hr"};
+
             for (String m : metrics) {
                 if (!shap.has(m)) continue;
                 JSONObject obj = shap.getJSONObject(m);
-                sb.append("[").append(m.toUpperCase()).append("] 상승요인: ");
+                sb.append("[").append(m.toUpperCase()).append(" 결정 요인]\n");
+
+                sb.append("- 성적 상승 기여: ");
                 JSONArray pos = obj.getJSONArray("top_positive");
-                for (int i = 0; i < Math.min(2, pos.length()); i++)
-                    sb.append(pos.getJSONObject(i).getString("feature")).append(" ");
-                sb.append("/ 하락요인: ");
+                for (int i = 0; i < Math.min(2, pos.length()); i++) {
+                    sb.append(metricTranslator.translate(pos.getJSONObject(i).getString("feature"))).append(", ");
+                }
+
+                sb.append("\n- 성적 하락 기여: ");
                 JSONArray neg = obj.getJSONArray("top_negative");
-                for (int i = 0; i < Math.min(2, neg.length()); i++)
-                    sb.append(neg.getJSONObject(i).getString("feature")).append(" ");
-                sb.append("\n");
+                for (int i = 0; i < Math.min(2, neg.length()); i++) {
+                    sb.append(metricTranslator.translate(neg.getJSONObject(i).getString("feature"))).append(", ");
+                }
+                sb.append("\n\n");
             }
             return sb.toString();
         } catch (Exception e) {
-            return "SHAP 데이터 요약 중 오류";
+            return "핵심 지표 데이터 분석 불가";
         }
     }
 
