@@ -52,6 +52,12 @@ public class PredictionResponseDto {
     private Integer roleRank;             // 보직 내 순위
     private Integer roleTotal;            // 보직 내 전체 인원
 
+    private BigDecimal era2025;           // 2025년 평균자책점 (ERA)
+    private BigDecimal fip2025;           // 2025년 수비무관 투구지표 (FIP)
+    private BigDecimal ip2025;            // 2025년 소화 이닝 (IP)
+    private BigDecimal whip2025;          // 2025년 이닝당 출루허용률 (WHIP)
+    private String role;                  // 투수 보직 (예: SP, RP)
+
     private String aiReport; // AI 분석 리포트
 
 }
