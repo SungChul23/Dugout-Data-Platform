@@ -1,5 +1,6 @@
 package com.dev.dugout.domain.user.controller;
 
+import com.dev.dugout.domain.user.dto.DashboardRequestDto;
 import com.dev.dugout.domain.user.dto.DashboardResponseDto;
 import com.dev.dugout.domain.user.service.DashboardService;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +30,9 @@ public class DashboardController {
     @PostMapping("/player")
     public ResponseEntity<Void> addPlayer(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestParam Long playerId,
-            @RequestParam int slotNumber) {
-        dashboardService.addPlayer(userPrincipal.getUser(), playerId, slotNumber);
+            @RequestBody DashboardRequestDto request) {
+
+        dashboardService.addPlayer(userPrincipal.getUser(), request.getPlayerId(), request.getSlotNumber());
         return ResponseEntity.ok().build();
     }
 
@@ -43,6 +44,4 @@ public class DashboardController {
         dashboardService.removePlayer(userPrincipal.getUser(), slotNumber);
         return ResponseEntity.ok().build();
     }
-
-
 }
