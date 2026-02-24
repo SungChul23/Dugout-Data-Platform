@@ -2,6 +2,7 @@ package com.dev.dugout.domain.user.service;
 
 
 import com.dev.dugout.domain.player.entity.Player;
+import com.dev.dugout.domain.player.repository.PlayerRepository;
 import com.dev.dugout.domain.team.dto.NewsItemDto;
 import com.dev.dugout.domain.team.dto.NewsResponseDto;
 import com.dev.dugout.domain.team.entity.Team;
@@ -31,6 +32,32 @@ public class DashboardService {
     private final PredictionResultRepository predictionResultRepository;
     private final UserRepository userRepository;
     private final NewsService newsService; // 기존 뉴스 서비스 디펜던시 인젝션 주입
+    private final PlayerRepository playerRepository;
+
+
+    //대시보드 선수 추가
+    @Transactional
+    public void addPlayer(User user, Long kboPcode, int slotNumber) {
+        // 1. 기존 슬롯 데이터 삭제 (교체 로직)
+        userDashboardRepository.deleteByUserAndSlotNumber(user, slotNumber);
+
+        // 2. 선수 조회
+        Player player = playerRepository.findByKboPcode(String.valueOf(kboPcode))
+                .orElseThrow(() -> new RuntimeException("선수를 찾을 수 없습니다."));
+
+        // 3. 신규 저장
+        userDashboardRepository.save(UserDashboard.builder()
+                .user(user)
+                .player(player)
+                .slotNumber(slotNumber)
+                .build());
+    }
+
+    //대시보드 선수 삭제
+    @Transactional
+    public void removePlayer(User user, int slotNumber) {
+        userDashboardRepository.deleteByUserAndSlotNumber(user, slotNumber);
+    }
 
     @Transactional(readOnly = true)
     public DashboardResponseDto getUserDashboard(User user) {
@@ -39,56 +66,52 @@ public class DashboardService {
 
         List<UserDashboard> userSelections = userDashboardRepository.findByUser(user);
         List<PlayerInsightDto> insights = new ArrayList<>();
-
-        //팀 엔티티 선언
         Team team = managedUser.getFavoriteTeam();
 
-        // 뉴스 데이터 처리 + 혹시나 null 방어
-        List<NewsItemDto> limitedNews = Optional.ofNullable
-                        (newsService.getKboNews(team.getName()))
-                .map(NewsResponseDto::getItems)
-                .orElse(new ArrayList<>())
-                .stream()
-                .limit(3)
-                .collect(Collectors.toList());
+        // 뉴스 데이터 3개 제한
+        List<NewsItemDto> limitedNews = newsService.getKboNews(team.getName())
+                .getItems().stream().limit(3).toList();
 
+        // 1~3번 슬롯 구성
         for (int slot = 1; slot <= 3; slot++) {
             final int currentSlot = slot;
             Optional<UserDashboard> selection = userSelections.stream()
-                    .filter(d -> d.getSlotNumber() == currentSlot)
-                    .findFirst();
+                    .filter(d -> d.getSlotNumber() == currentSlot).findFirst();
 
             if (selection.isPresent()) {
                 Player player = selection.get().getPlayer();
-
                 // 최신 예측 결과 조회
-                PredictionResult pred = predictionResultRepository.findTopByPlayerOrderByPredictedAtDesc(player)
-                        .orElse(null);
+                PredictionResult pred = predictionResultRepository.findTopByPlayerOrderByPredictedAtDesc(player).orElse(null);
 
-                // DTO 빌더에 새로 만든 컬럼들 적용
-                insights.add(PlayerInsightDto.builder()
+                PlayerInsightDto.PlayerInsightDtoBuilder builder = PlayerInsightDto.builder()
                         .slotNumber(currentSlot)
-                        // 프론트와 식별자 통일을 위해 kboPcode를 숫자로 변환하여 전달
                         .playerId(Long.parseLong(player.getKboPcode()))
                         .name(player.getName())
                         .position(player.getPositionType())
-                        // Double(0.0) 대신 BigDecimal.ZERO 사용
-                        .predictedAvg(pred != null ? pred.getPredAvg() : BigDecimal.ZERO)
-                        .predictedHr(pred != null ? pred.getPredHr() : 0)
-                        .predictedOps(pred != null ? pred.getPredOps() : BigDecimal.ZERO)
-                        .avgDiff(pred != null ? pred.getAvgDiff() : BigDecimal.ZERO)
-                        .hrDiff(pred != null ? pred.getHrDiff() : 0)
-                        .opsDiff(pred != null ? pred.getOpsDiff() : BigDecimal.ZERO)
-                        .insightSummary(pred != null ? pred.getInsightJson() : "데이터 분석 중")
-                        .isEmpty(false)
-                        .build());
+                        // player 엔티티를 통해 팀 코드 직접 추출
+                        .teamCode(player.getTeam() != null ? String.valueOf(player.getTeam().getId()) : null)
+                        .isEmpty(false);
+
+                // 투수/타자 지표 분기 매핑
+                if ("투수".equals(player.getPositionType()) && pred != null) {
+                    builder.probElite(pred.getProbElite())
+                            .rolePercentileTop(pred.getRolePercentileTop())
+                            .roleRank(pred.getRoleRank())
+                            .roleTotal(pred.getRoleTotal());
+                } else if (pred != null) {
+                    builder.predictedAvg(pred.getPredAvg())
+                            .predictedHr(pred.getPredHr())
+                            .predictedOps(pred.getPredOps())
+                            .avgDiff(pred.getAvgDiff())
+                            .hrDiff(pred.getHrDiff())
+                            .opsDiff(pred.getOpsDiff());
+                }
+                insights.add(builder.build());
             } else {
-                insights.add(PlayerInsightDto.builder()
-                        .slotNumber(currentSlot)
-                        .isEmpty(true)
-                        .build());
+                insights.add(PlayerInsightDto.builder().slotNumber(currentSlot).isEmpty(true).build());
             }
         }
+
         return DashboardResponseDto.builder()
                 .favoriteTeamName(team.getName())
                 .teamSlogan(team.getSlogan())
@@ -97,4 +120,5 @@ public class DashboardService {
                 .news(limitedNews)
                 .build();
     }
+
 }

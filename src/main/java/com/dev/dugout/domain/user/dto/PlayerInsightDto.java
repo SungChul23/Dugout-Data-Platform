@@ -1,35 +1,37 @@
 package com.dev.dugout.domain.user.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
 
 @Data
+@AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PlayerInsightDto {
 
     private Integer slotNumber;
     private Long playerId;
     private String name;
     private String position;
+    private String teamCode; // 추가: 선수의 소속 팀 코드 (예: "SS", "HH" 등)
+    private boolean isEmpty;
 
+    // --- 타자용 지표 ---
+    private BigDecimal predictedAvg;
+    private BigDecimal predictedOps;
+    private Integer predictedHr;
+    private BigDecimal avgDiff;
+    private BigDecimal opsDiff;
+    private Integer hrDiff;
 
-    // 2026년 예상 핵심 지표
-    private BigDecimal predictedAvg;   // 예상 타율 (예: 0.312)
-    private Integer predictedHr;   // 예상 홈런 (예: 25)
-    private BigDecimal predictedOps;   // 예상 OPS (예: 0.895)
-
-    // 2025년 대비 변화폭
-    private BigDecimal avgDiff;        // 타율 차이
-    private Integer hrDiff;        // 홈런 차이
-    private BigDecimal opsDiff;        // OPS 차이
-
-    // Bedrock이 생성한 요약 문구 또는 상세 인사이트 JSON
-    private String insightSummary;
-
-    // 슬롯이 비어있는지 여부
-    @Builder.Default
-    private Boolean isEmpty = true;
+    // --- 투수용 지표 ---
+    private BigDecimal probElite;
+    private BigDecimal rolePercentileTop;
+    private Integer roleRank;
+    private Integer roleTotal;
 }

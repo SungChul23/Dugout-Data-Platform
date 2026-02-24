@@ -5,9 +5,7 @@ import com.dev.dugout.domain.user.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import com.dev.dugout.global.config.UserPrincipal;
 
 @RestController
@@ -26,4 +24,25 @@ public class DashboardController {
                 dashboardService.getUserDashboard(userPrincipal.getUser());
         return ResponseEntity.ok(response);
     }
+
+    // 선수추가
+    @PostMapping("/player")
+    public ResponseEntity<Void> addPlayer(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam Long playerId,
+            @RequestParam int slotNumber) {
+        dashboardService.addPlayer(userPrincipal.getUser(), playerId, slotNumber);
+        return ResponseEntity.ok().build();
+    }
+
+    // 특정 슬롯 삭제
+    @DeleteMapping("/player")
+    public ResponseEntity<Void> removePlayer(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam int slotNumber) {
+        dashboardService.removePlayer(userPrincipal.getUser(), slotNumber);
+        return ResponseEntity.ok().build();
+    }
+
+
 }

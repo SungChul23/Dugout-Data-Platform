@@ -31,6 +31,9 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             "ORDER BY CAST(p.backNumber AS integer) ASC")
     List<Player> findPredictablePitchers(@Param("teamName") String teamName);
 
-    // 2상세 분석용: KBO 고유 번호(pcode)로 선수 1명을 조회
+    // 상세 분석 페이지나 대시보드 추가 시 사용됩니다.
     Optional<Player> findByKboPcode(String kboPcode);
+
+
+
 }
