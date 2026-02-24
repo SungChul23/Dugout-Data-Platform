@@ -76,7 +76,7 @@ public class DashboardService {
                 .getItems().stream().limit(3).toList();
 
         // 1~3번 슬롯 구성
-        for (int slot = 1; slot <= 3; slot++) {
+        for (int slot = 0; slot <= 2; slot++) {
             final int currentSlot = slot;
             Optional<UserDashboard> selection = userSelections.stream()
                     .filter(d -> d.getSlotNumber() == currentSlot).findFirst();
