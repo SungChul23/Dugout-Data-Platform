@@ -32,7 +32,6 @@ public class MetricTranslator {
             Map.entry("2B", "2B(2루타)"),
             Map.entry("3B", "3B(3루타)"),
             Map.entry("HR", "HR(홈런)"),
-            Map.entry("TB", "TB(루타 수)"),
             Map.entry("RBI", "RBI(타점)"),
             Map.entry("R", "R(득점)"),
             Map.entry("BB", "BB(볼넷)"),
