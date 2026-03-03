@@ -5,6 +5,7 @@ import com.dev.dugout.domain.user.dto.LoginResponseDto;
 import com.dev.dugout.domain.user.dto.NicknameCheckResponseDto;
 import com.dev.dugout.domain.user.dto.SignupRequestDto;
 import com.dev.dugout.domain.user.service.MemberService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class MemberController {
 
     // 회원가입
     @PostMapping("/signup")
-    public ResponseEntity<LoginResponseDto> signup(@RequestBody SignupRequestDto requestDto) {
+    public ResponseEntity<LoginResponseDto> signup( @Valid @RequestBody SignupRequestDto requestDto) {
         LoginResponseDto responseDto = memberService.signup(requestDto);
         return ResponseEntity.ok(responseDto);
     }
@@ -45,7 +46,6 @@ public class MemberController {
             return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
         }
     }
-
     // 관리자 용
     @GetMapping("/refresh-forbidden-words")
     public ResponseEntity<String> refreshWords() {
