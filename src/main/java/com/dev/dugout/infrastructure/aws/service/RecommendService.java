@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -34,10 +35,8 @@ public class RecommendService {
             Map.entry("11", "현대 유니콘스")
     );
 
-    public TeamRecommendationResponseDto getMatchTeam(SurveyRequestDto request) {
-        // [LOG] 분석 시작 및 수신 데이터 확인
-        log.info(">>>> [ANALYSIS START] KBO 팀 추천 엔진 가동 (기준 연도: {} 이후)", request.getStartYear());
-        log.info(">>>> [USER PREFERENCE] {}", request.getPreferenceSummary());
+    public List<TeamRecommendationResponseDto> getMatchTeam(SurveyRequestDto request) {
+        log.info(">>>> [ANALYSIS START] KBO 상위 3팀 추천 엔진 가동");
 
         Map<String, Integer> prefs = request.getPreferences();
         double w1 = prefs.getOrDefault("q1", 3) / 5.0;
@@ -59,17 +58,14 @@ public class RecommendService {
                         "(CAST(p.wpct AS DOUBLE) / 1.0 * %.4f) ) AS total_score " +
                         "FROM type_hitter h JOIN type_pitcher p ON h.year = p.year AND h.team_id = p.team_id " +
                         "WHERE h.year >= '%d' " +
-                        "ORDER BY total_score DESC LIMIT 1",
+                        "ORDER BY total_score DESC LIMIT 3", // 3개 추출
                 w1, w2, w3, w4, w5, w6, request.getStartYear()
         );
-
-        // [LOG] 생성된 SQL 확인 (디버깅 시 가장 중요함)
-        log.debug(">>>> [SQL GENERATED] {}", sql);
 
         return executeAthenaQuery(sql, request.getPreferenceSummary());
     }
 
-    private TeamRecommendationResponseDto executeAthenaQuery(String sql, String userPref) {
+    private List<TeamRecommendationResponseDto> executeAthenaQuery(String sql, String userPref) {
         StartQueryExecutionRequest startRequest = StartQueryExecutionRequest.builder()
                 .queryString(sql)
                 .queryExecutionContext(QueryExecutionContext.builder().database(database).build())
@@ -77,52 +73,50 @@ public class RecommendService {
                 .build();
 
         String executionId = athenaClient.startQueryExecution(startRequest).queryExecutionId();
-
-        // [LOG] 쿼리 실행 ID 기록
-        log.info(">>>> [ATHENA SUBMITTED] Query ID: {}", executionId);
-
         waitForQuery(executionId);
 
+        // [수정] maxResults를 4로 설정 (헤더 1개 + 데이터 3개)
         GetQueryResultsResponse results = athenaClient.getQueryResults(
-                GetQueryResultsRequest.builder().queryExecutionId(executionId).maxResults(2).build()
+                GetQueryResultsRequest.builder().queryExecutionId(executionId).maxResults(4).build()
         );
 
         List<Row> rows = results.resultSet().rows();
+        List<TeamRecommendationResponseDto> recommendations = new ArrayList<>();
+
         if (rows.size() > 1) {
-            List<Datum> data = rows.get(1).data();
+            // [수정] index 1부터 전체 로우 반복 처리
+            for (int i = 1; i < rows.size(); i++) {
+                List<Datum> data = rows.get(i).data();
 
-            String year = data.get(0).varCharValue();
-            String dbTeamName = data.get(1).varCharValue();
-            String hr = data.get(2).varCharValue();
-            String avg = data.get(3).varCharValue();
-            String era = data.get(4).varCharValue();
-            String ops = data.get(5).varCharValue();
-            String sv = data.get(6).varCharValue();   // <--- 인덱스 6 추가
-            String hld = data.get(7).varCharValue();  // <--- 인덱스 7 추가
-            double totalScore = Double.parseDouble(data.get(8).varCharValue()); // <--- 인덱스 8로 밀림
+                String year = data.get(0).varCharValue();
+                String dbTeamName = data.get(1).varCharValue();
+                String fullTeamName = FULL_TEAM_NAMES.getOrDefault(dbTeamName, dbTeamName + " 구단");
+                double totalScore = Double.parseDouble(data.get(8).varCharValue());
 
-            String fullTeamName = FULL_TEAM_NAMES.getOrDefault(dbTeamName, dbTeamName + " 구단");
-            String statsSummary = String.format("홈런 %s개, 타율 %s, ERA %s, OPS %s, 세이브 %s, 홀드 %s",
-                    hr, avg, era, ops, sv, hld);
+                // AI 분석을 위한 스탯 요약 (DTO에 statsSummary 필드가 있다고 가정)
+                String stats = String.format("홈런 %s, 타율 %s, ERA %s, OPS %s, 세이브 %s, 홀드 %s",
+                        data.get(2).varCharValue(), data.get(3).varCharValue(), data.get(4).varCharValue(),
+                        data.get(5).varCharValue(), data.get(6).varCharValue(), data.get(7).varCharValue());
 
-            // [LOG] 아테나 결과 확인
-            log.info(">>>> [ATHENA RESULT] 매칭 성공! -> {}년 {} (Score: {})", year, fullTeamName, totalScore);
+                recommendations.add(TeamRecommendationResponseDto.builder()
+                        .year(year)
+                        .originalName(dbTeamName)
+                        .teamName(fullTeamName)
+                        .score(totalScore)
+                        .statsSummary(stats) // AI가 읽을 용도
+                        .build());
+            }
 
-            // [LOG] Bedrock 호출 시작
-            log.info(">>>> [BEDROCK REQUEST] AI 추천 사유 생성 시작...");
-            String aiReason = bedrockService.generateReason(fullTeamName, year, statsSummary, userPref);
-            log.info(">>>> [BEDROCK RESPONSE] 생성 완료");
+            // [핵심] 반복문 종료 후 Bedrock 단 1회 호출
+            log.info(">>>> [BEDROCK REQUEST] 3개 팀 통합 분석 시작...");
+            String totalAiReason = bedrockService.generateBatchReason(recommendations, userPref);
 
-            return TeamRecommendationResponseDto.builder()
-                    .year(year)
-                    .originalName(dbTeamName)
-                    .teamName(fullTeamName)
-                    .score(totalScore)
-                    .reason(aiReason)
-                    .build();
+            // 모든 DTO에 생성된 리포트를 할당 (프론트에서 하나만 꺼내 쓰면 됨)
+            recommendations.forEach(dto -> dto.setReason(totalAiReason));
+
+            return recommendations;
         }
 
-        log.warn(">>>> [NO DATA] 조건에 맞는 팀을 찾을 수 없습니다.");
         throw new RuntimeException("추천 팀 데이터가 없습니다.");
     }
 
