@@ -258,13 +258,13 @@ public class ReportBedrockService {
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
         payload.put("max_tokens", 1500);
-        payload.put("temperature", 0.3);
+        payload.put("temperature", 0.2);
 
-        payload.put("system", "너는 KBO 데이터 분석 전문가야. " +
-                "반드시 마크다운 형식을 엄격히 준수해야 해. " +
-                "특히 모든 강조 표시(**)는 단어와 공백 없이 밀착시켜야 하며, " +
-                "열린 태그가 있으면 반드시 문장 끝에서 닫아야 해. " +
-                "문장 끝에 의미 없는 **를 남기지 마.");
+        payload.put("system", "너는 KBO 데이터 전략가야. 아래 규칙을 어기면 리포트가 파괴되니 반드시 지켜:\n" +
+                "1. 모든 강조(`**`)는 단어에 '밀착'시킨다. (예: `**타율**` (O), `** 타율 **` (X))\n" +
+                "2. 문장 끝에 마침표(.)가 있다면 반드시 마침표 '뒤'가 아닌 '앞'에서 `**`를 닫는다. (예: `...합니다.**` (O))\n" +
+                "3. 지표 이름(AVG, HR 등)이 나오면 무조건 한글명을 포함해 `**지표명(한글명)**`으로 통일한다.\n" +
+                "4. 내용이 끝난 뒤 의미 없는 `**` 찌꺼기를 절대 남기지 마.");
 
         JSONArray messages = new JSONArray();
         messages.put(new JSONObject().put("role", "user").put("content", prompt));
