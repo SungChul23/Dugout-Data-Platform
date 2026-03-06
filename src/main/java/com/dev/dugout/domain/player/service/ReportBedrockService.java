@@ -258,7 +258,7 @@ public class ReportBedrockService {
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
         payload.put("max_tokens", 1500);
-        payload.put("temperature", 0.2);
+        payload.put("temperature", 0.1);
 
         payload.put("system", "너는 KBO 데이터 전략가야. 아래 규칙을 어기면 리포트가 파괴되니 반드시 지켜:\n" +
                 "1. 모든 강조(`**`)는 단어에 '밀착'시킨다. (예: `**타율**` (O), `** 타율 **` (X))\n" +
