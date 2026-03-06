@@ -258,7 +258,13 @@ public class ReportBedrockService {
         JSONObject payload = new JSONObject();
         payload.put("anthropic_version", "bedrock-2023-05-31");
         payload.put("max_tokens", 1500);
-        payload.put("temperature", 0.7);
+        payload.put("temperature", 0.3);
+
+        payload.put("system", "너는 KBO 데이터 분석 전문가야. " +
+                "반드시 마크다운 형식을 엄격히 준수해야 해. " +
+                "특히 모든 강조 표시(**)는 단어와 공백 없이 밀착시켜야 하며, " +
+                "열린 태그가 있으면 반드시 문장 끝에서 닫아야 해. " +
+                "문장 끝에 의미 없는 **를 남기지 마.");
 
         JSONArray messages = new JSONArray();
         messages.put(new JSONObject().put("role", "user").put("content", prompt));
