@@ -92,6 +92,7 @@ public class JwtTokenProvider {
                 .secure(true)
                 .path("/")
                 .maxAge(0) // 즉시 만료
+                .sameSite("None")
                 .build();
     }
 }
