@@ -54,7 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/members/login", "/api/v1/members/signup", "/api/v1/members/check-id").permitAll()
 
                         // 3. [Members] 로그인한 사람만 들어올 수 있는 방 (내 정보, 로그아웃, 탈퇴)
-                        .requestMatchers("/api/v1/members/me", "/api/v1/members/logout", "/api/v1/members/withdraw").authenticated()
+                        .requestMatchers("/api/v1/members/me", "/api/v1/members/logout").authenticated()
 
                         // 4. [Service] 일반 데이터 조회 (더그아웃의 풍부한 야구 데이터들)
                         .requestMatchers(

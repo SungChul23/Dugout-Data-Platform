@@ -69,7 +69,7 @@ public class JwtTokenProvider {
                 .secure(true) // HTTPS 배포 환경
                 .path("/")
                 .maxAge(ACCESS_TOKEN_EXPIRE_TIME / 1000) // 초 단위 변환
-                .sameSite("Lax")
+                .sameSite("None")
                 .build();
     }
 
@@ -81,7 +81,7 @@ public class JwtTokenProvider {
                 .secure(true)
                 .path("/")
                 .maxAge(REFRESH_TOKEN_EXPIRE_TIME / 1000)
-                .sameSite("Lax")
+                .sameSite("None")
                 .build();
     }
 
