@@ -97,7 +97,8 @@ public class SecurityConfig {
         // 개발 환경(IDX 등)을 위한 패턴은 유지
         configuration.setAllowedOriginPatterns(List.of(
                 "https://*.idx.google.com",
-                "https://*.usercontent.goog"
+                "https://*.usercontent.goog",
+                "https://*.run.app"
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
