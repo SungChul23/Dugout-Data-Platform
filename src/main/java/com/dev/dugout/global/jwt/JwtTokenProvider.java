@@ -5,6 +5,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -57,5 +58,40 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+
+    // Access Token을 쿠키에 담아 반환
+    public ResponseCookie createAccessTokenCookie(String loginId) {
+        String token = createAccessToken(loginId); // 기존 로직 활용
+        return ResponseCookie.from("accessToken", token)
+                .httpOnly(true)
+                .secure(true) // HTTPS 배포 환경
+                .path("/")
+                .maxAge(ACCESS_TOKEN_EXPIRE_TIME / 1000) // 초 단위 변환
+                .sameSite("Lax")
+                .build();
+    }
+
+    //Refresh Token을 쿠키에 담아 반환
+    public ResponseCookie createRefreshTokenCookie(String loginId) {
+        String token = createRefreshToken(loginId); // 기존 로직 활용
+        return ResponseCookie.from("refreshToken", token)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(REFRESH_TOKEN_EXPIRE_TIME / 1000)
+                .sameSite("Lax")
+                .build();
+    }
+
+    //로그아웃 시 쿠키를 제거하기 위한 빈 쿠키 생성
+    public ResponseCookie createEmptyCookie(String cookieName) {
+        return ResponseCookie.from(cookieName, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0) // 즉시 만료
+                .build();
     }
 }

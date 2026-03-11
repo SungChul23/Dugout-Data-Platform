@@ -5,9 +5,12 @@ import com.dev.dugout.domain.user.dto.LoginResponseDto;
 import com.dev.dugout.domain.user.dto.NicknameCheckResponseDto;
 import com.dev.dugout.domain.user.dto.SignupRequestDto;
 import com.dev.dugout.domain.user.service.MemberService;
+import com.dev.dugout.global.jwt.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,12 +23,21 @@ import java.security.Principal;
 public class MemberController {
 
     private final MemberService memberService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // 회원가입
     @PostMapping("/signup")
-    public ResponseEntity<LoginResponseDto> signup( @Valid @RequestBody SignupRequestDto requestDto) {
+    public ResponseEntity<LoginResponseDto> signup(@Valid @RequestBody SignupRequestDto requestDto) {
         LoginResponseDto responseDto = memberService.signup(requestDto);
-        return ResponseEntity.ok(responseDto);
+
+        // 가입 직후 자동 로그인을 위한 쿠키 생성
+        ResponseCookie accessCookie = jwtTokenProvider.createAccessTokenCookie(requestDto.getEmail());
+        ResponseCookie refreshCookie = jwtTokenProvider.createRefreshTokenCookie(requestDto.getEmail());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(responseDto);
     }
 
     // 닉네임 중복 확인
@@ -34,30 +46,41 @@ public class MemberController {
         return ResponseEntity.ok(memberService.checkNicknameAvailability(nickname));
     }
 
-    //서비스에서 토큰 2개(Access/Refresh)가 포함된 DTO를 응답받음
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto loginDto) {
         LoginResponseDto responseDto = memberService.getLoginUserInfo(loginDto);
 
         if (responseDto != null) {
-            // 성공 시 토큰 2개, 닉네임, 팀 정보를 모두 포함하여 반환
-            return ResponseEntity.ok(responseDto);
+            // [개선] Provider에게 쿠키 생성을 맡김 (일관성 유지)
+            ResponseCookie accessCookie = jwtTokenProvider.createAccessTokenCookie(loginDto.getEmail());
+            ResponseCookie refreshCookie = jwtTokenProvider.createRefreshTokenCookie(loginDto.getEmail());
+
+            log.info(">>>> [Controller] 유저 {} 로그인 성공, 쿠키 발급", loginDto.getEmail());
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                    .body(responseDto); // 닉네임, 팀 정보 등은 여전히 프론트에서 필요함
         } else {
             return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
         }
-    }
-    // 관리자 용
-    @GetMapping("/refresh-forbidden-words")
-    public ResponseEntity<String> refreshWords() {
-        memberService.refreshForbiddenWords();
-        return ResponseEntity.ok("금칙어 캐시가 성공적으로 갱신되었습니다!");
     }
 
     //로그아웃
     @PostMapping("/logout")
     public ResponseEntity<String> logout(Principal principal) {
-        memberService.logout(principal.getName());
-        return ResponseEntity.ok("로그아웃이 완료되었습니다.");
+        if (principal != null) {
+            memberService.logout(principal.getName());
+        }
+
+        // [개선] 빈 쿠키를 생성하여 브라우저의 쿠키 삭제 유도
+        ResponseCookie emptyAccess = jwtTokenProvider.createEmptyCookie("accessToken");
+        ResponseCookie emptyRefresh = jwtTokenProvider.createEmptyCookie("refreshToken");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, emptyAccess.toString())
+                .header(HttpHeaders.SET_COOKIE, emptyRefresh.toString())
+                .body("로그아웃이 완료되었습니다.");
     }
 
     // 회원 탈퇴
@@ -66,6 +89,18 @@ public class MemberController {
         log.info(">>>> [Controller] 유저 {}의 회원탈퇴 요청", principal.getName());
         memberService.withdraw(principal.getName());
 
-        return ResponseEntity.ok("회원탈퇴가 성공적으로 처리되었습니다. 그동안 더그아웃을 이용해주셔서 감사합니다!");
+        // 탈퇴 시에도 쿠키 삭제
+        ResponseCookie emptyAccess = jwtTokenProvider.createEmptyCookie("accessToken");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, emptyAccess.toString())
+                .body("회원탈퇴가 처리되었습니다. 이용해주셔서 감사합니다.");
+    }
+
+    // 관리자 용
+    @GetMapping("/refresh-forbidden-words")
+    public ResponseEntity<String> refreshWords() {
+        memberService.refreshForbiddenWords();
+        return ResponseEntity.ok("금칙어 캐시가 성공적으로 갱신되었습니다!");
     }
 }

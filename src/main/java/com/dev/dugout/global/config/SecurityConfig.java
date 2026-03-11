@@ -46,23 +46,35 @@ public class SecurityConfig {
                 )
                 //요청한 URL에 들어갈 자격이 있나요?
                 .authorizeHttpRequests(auth -> auth
-                        // OPTIONS 요청(Preflight)은 인증 없이 모두 허용
+                        // 1. 공통/예외 요청
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/members/**").permitAll()
-                        .requestMatchers("/api/v1/fanexperience/**").permitAll()
-                        .requestMatchers("/api/v1/news/**").permitAll()
-                        .requestMatchers("/api/v1/schedule/**").permitAll()
+
+                        // 2. [Members] 누구나 접근 가능한 문 (로그인, 회원가입 등)
+                        .requestMatchers("/api/v1/members/login", "/api/v1/members/signup", "/api/v1/members/check-id").permitAll()
+
+                        // 3. [Members] 로그인한 사람만 들어올 수 있는 방 (내 정보, 로그아웃, 탈퇴)
+                        .requestMatchers("/api/v1/members/me", "/api/v1/members/logout", "/api/v1/members/withdraw").authenticated()
+
+                        // 4. [Service] 일반 데이터 조회 (더그아웃의 풍부한 야구 데이터들)
+                        .requestMatchers(
+                                "/api/v1/fanexperience/**",
+                                "/api/v1/news/**",
+                                "/api/v1/schedule/**",
+                                "/api/v1/players/**",
+                                "/api/v1/prediction/**",
+                                "/api/v1/fa-market/**",
+                                "/api/v1/tickets/teams",
+                                "/api/v1/notices"
+                        ).permitAll()
+
+                        // 5. [Private] 대시보드 등 개인화 서비스
                         .requestMatchers("/api/v1/dashboard", "/api/v1/dashboard/**").authenticated()
-                        .requestMatchers("/api/v1/players/**").permitAll()
-                        .requestMatchers("/api/v1/prediction/**").permitAll()
-                        .requestMatchers("/api/v1/fa-market/**").permitAll()
-                        .requestMatchers("/api/v1/tickets/teams").permitAll()
-                        .requestMatchers("/api/v1/notices").permitAll()
+
+                        // 6. 나머지는 기본적으로 인증 필요 (안전빵)
                         .anyRequest().authenticated()
                 )
-                //JWT 인증 필터를 UsernamePasswordAuthenticationFilter보다 먼저 실행하도록 등록
-                //전통 아이디 및 비번으로 로그인하는 방법 대신에 내가 만든 JWT 필터로 먼저 인증을 끝내자
+
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService),
                         UsernamePasswordAuthenticationFilter.class);
 
@@ -75,15 +87,17 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 기존 WebConfig에 있던 도메인 + 실서비스 도메인 통합
-        configuration.setAllowedOriginPatterns(List.of(
+        // 쿠키 인증 시에는 도메인을 명확하게 명시하는 것이 브라우저 호환성에 가장 좋음
+        configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
-                "https://*.idx.google.com",
-                "https://*.google.com",
-                "https://*.usercontent.goog",
                 "https://dugout.cloud",
-                "https://*.cloudworkstations.dev",
-                "https://*.run.app"
+                "https://www.dugout.cloud"
+        ));
+
+        // 개발 환경(IDX 등)을 위한 패턴은 유지
+        configuration.setAllowedOriginPatterns(List.of(
+                "https://*.idx.google.com",
+                "https://*.usercontent.goog"
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
