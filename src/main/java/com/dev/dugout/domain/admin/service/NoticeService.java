@@ -20,7 +20,7 @@ public class NoticeService {
 
     // 공지사항 가져오기
     public List<NoticeDto> findAllNotices() {
-        return noticeRepository.findAllByOrderByIdDesc().stream()
+        return noticeRepository.findAllByOrderByIdAsc().stream()
                 .map(notice -> NoticeDto.builder() // Entity -> DTO 변환 로직
                         .id(notice.getId())
                         .type(notice.getType())
