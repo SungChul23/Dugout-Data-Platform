@@ -3,6 +3,8 @@ package com.dev.dugout.domain.admin.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,5 +30,5 @@ public class Notice {
     private String content;
 
     @Column(nullable = false)
-    private String updateDate;
+    private LocalDate updateDate;
 }

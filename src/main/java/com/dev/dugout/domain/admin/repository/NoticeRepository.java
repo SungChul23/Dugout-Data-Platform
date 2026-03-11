@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface NoticeRepository extends JpaRepository<Notice,Long> {
 
-    //ID 역순으로 가져오기 (최신순) - 전체조회
-    List<Notice> findAllByOrderByIdAsc();
+    // 날짜 문자열 기준 내림차순 (최신 날짜가 위로)
+    List<Notice> findAllByOrderByUpdateDateDesc();
 }

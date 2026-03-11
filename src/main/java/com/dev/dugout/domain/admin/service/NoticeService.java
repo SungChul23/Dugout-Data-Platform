@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,14 +21,15 @@ public class NoticeService {
 
     // 공지사항 가져오기
     public List<NoticeDto> findAllNotices() {
-        return noticeRepository.findAllByOrderByIdAsc().stream()
+        return noticeRepository.findAllByOrderByUpdateDateDesc().stream()
                 .map(notice -> NoticeDto.builder() // Entity -> DTO 변환 로직
                         .id(notice.getId())
                         .type(notice.getType())
                         .version(notice.getVersion())
                         .title(notice.getTitle())
                         .content(notice.getContent())
-                        .updateDate(notice.getUpdateDate())
+                        //// LocalDate -> "yyyy.MM.dd" 문자열로 변환
+                        .updateDate(notice.getUpdateDate().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")))
                         .build())
                 .collect(Collectors.toList());
     }
