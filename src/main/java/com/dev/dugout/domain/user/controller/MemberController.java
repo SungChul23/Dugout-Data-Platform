@@ -99,6 +99,20 @@ public class MemberController {
                 .header(HttpHeaders.SET_COOKIE, emptyAccess.toString())
                 .body("회원탈퇴가 처리되었습니다. 이용해주셔서 감사합니다.");
     }
+    // 내 정보 조회(새로고침 시 로그인 유지용)
+    @GetMapping("/me")
+    public ResponseEntity<?> getMyInfo(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).body("로그인되지 않은 사용자입니다.");
+        }
+
+        // principal.getName()에는 우리가 토큰에 넣었던 email(또는 loginId)이 들어있습니다.
+        // 서비스를 통해 DB에서 해당 유저의 최신 정보를 가져옵니다.
+        LoginResponseDto userInfo = memberService.getMemberInfo(principal.getName());
+
+        return ResponseEntity.ok(userInfo);
+    }
+
 
     // 관리자 용
     @GetMapping("/refresh-forbidden-words")

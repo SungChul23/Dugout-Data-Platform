@@ -130,7 +130,7 @@ public class MemberService {
                             refreshTokenRepository.save(newToken);
                         }
                 );
-        return new LoginResponseDto(accessToken, refreshToken, user.getNickname(), user.getFavoriteTeam().getName(),user.getFavoriteTeam().getSlogan());
+        return new LoginResponseDto(accessToken, refreshToken, user.getNickname(), user.getFavoriteTeam().getName(), user.getFavoriteTeam().getSlogan());
     }
 
     @Transactional
@@ -163,5 +163,25 @@ public class MemberService {
         userRepository.delete(user);
 
         log.info(">>>> [Withdrawal] 유저 {}의 모든 데이터(대시보드 포함)가 DB 레벨에서 정리되었습니다.", loginId);
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResponseDto getMemberInfo(String loginId) {
+        // 1. 토큰에서 뽑아낸 loginId(email)로 유저 정보 조회
+        // findByLoginIdWithTeam을 사용해서 Team 엔티티까지 한 번에 가져옴
+        User user = userRepository.findByLoginIdWithTeam(loginId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        log.info(">>>> [Service] 세션 복구를 위해 유저 {}의 정보를 조회합니다.", loginId);
+
+        // 2. 쿠키 방식이므로 바디에 토큰을 실어줄 필요없음 (null 처리)
+        // 순수하게 닉네임, 팀명, 슬로건만 담아서 보냅니다.
+        return new LoginResponseDto(
+                null,
+                null,
+                user.getNickname(),
+                user.getFavoriteTeam().getName(),
+                user.getFavoriteTeam().getSlogan()
+        );
     }
 }
