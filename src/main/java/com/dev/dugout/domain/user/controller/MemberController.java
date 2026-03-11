@@ -51,19 +51,22 @@ public class MemberController {
         LoginResponseDto responseDto = memberService.getLoginUserInfo(loginDto);
 
         if (responseDto != null) {
-            // [개선] Provider에게 쿠키 생성을 맡김 (일관성 유지)
             ResponseCookie accessCookie = jwtTokenProvider.createAccessTokenCookie(loginDto.getEmail());
             ResponseCookie refreshCookie = jwtTokenProvider.createRefreshTokenCookie(loginDto.getEmail());
+
+            // [중요] 토큰을 제외한 유저 정보만 담은 응답 객체를 새로 만들거나,
+            // 기존 DTO에서 토큰 필드만 null로 밀어버립니다.
+            responseDto.setAccessToken(null);
+            responseDto.setRefreshToken(null);
 
             log.info(">>>> [Controller] 유저 {} 로그인 성공, 쿠키 발급", loginDto.getEmail());
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                    .body(responseDto); // 닉네임, 팀 정보 등은 여전히 프론트에서 필요함
-        } else {
-            return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
+                    .body(responseDto); // 이제 바디에는 닉네임, 팀 정보만 남음!
         }
+        return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
     }
 
     //로그아웃
