@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @EqualsAndHashCode //JPA가 식별자를 비교할 때 사용
 public class TeamRankingId implements Serializable {
 
-    private LocalDate rankingDate;
+    private LocalDate base_date;
     private Long team; // @ManyToOne인 경우 연관된 엔티티의 ID 타입
 
 }
