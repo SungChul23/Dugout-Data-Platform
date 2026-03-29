@@ -1,4 +1,4 @@
-package com.dev.dugout.domain.team.entity;
+package com.dev.dugout.domain.player.entity;
 
 import java.io.Serializable;
 import lombok.*;
@@ -10,5 +10,5 @@ import java.time.LocalDate;
 //DailyPlayerPitcher 복합키 생성
 public class DailyPlayerPitcherId implements Serializable {
     private LocalDate baseDate;
-    private Integer player;
+    private String player;
 }

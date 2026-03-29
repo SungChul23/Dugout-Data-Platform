@@ -1,6 +1,6 @@
-package com.dev.dugout.domain.team.entity;
+package com.dev.dugout.domain.player.entity;
 
-import com.dev.dugout.domain.player.entity.Player;
+import com.dev.dugout.domain.team.entity.Team;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
