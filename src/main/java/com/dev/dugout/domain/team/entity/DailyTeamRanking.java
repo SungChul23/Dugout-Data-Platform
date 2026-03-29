@@ -15,9 +15,10 @@ import java.time.LocalDate;
 @Table(name = "daily_team_ranking")
 public class DailyTeamRanking {
 
+
     @Id
     @Column(name = "base_date")
-    private LocalDate rankingDate; // JSON: base_date
+    private LocalDate base_date; // JSON: base_date
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
