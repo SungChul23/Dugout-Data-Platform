@@ -55,7 +55,7 @@ public class TeamRankIngestDto {
      */
     public DailyTeamRanking toEntity(LocalDate baseDate, Team team) {
         return DailyTeamRanking.builder()
-                .rankingDate(baseDate)
+                .base_date(baseDate)
                 .team(team)
                 .rank(this.rank)
                 .gamesPlayed(this.gamesPlayed)
