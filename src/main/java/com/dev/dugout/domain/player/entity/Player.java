@@ -6,12 +6,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "player")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "player", indexes = {
+        @Index(name = "idx_player_kbo_pcode", columnList = "kbo_pcode", unique = true)
+})
 public class Player {
 
     @Id
