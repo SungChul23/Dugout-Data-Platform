@@ -18,7 +18,7 @@ public class DailyTeamRanking {
 
     @Id
     @Column(name = "base_date")
-    private LocalDate base_date; // JSON: base_date
+    private LocalDate baseDate; // JSON: base_date
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)

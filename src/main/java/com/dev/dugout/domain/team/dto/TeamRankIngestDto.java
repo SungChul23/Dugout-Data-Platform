@@ -50,12 +50,10 @@ public class TeamRankIngestDto {
     @JsonProperty("away_record")
     private String awayRecord;
 
-    /**
-     * DTO를 DailyTeamRanking 엔티티로 변환
-     */
+    //DTO를 DailyTeamRanking 엔티티로 변환
     public DailyTeamRanking toEntity(LocalDate baseDate, Team team) {
         return DailyTeamRanking.builder()
-                .base_date(baseDate)
+                .baseDate(baseDate)
                 .team(team)
                 .rank(this.rank)
                 .gamesPlayed(this.gamesPlayed)
