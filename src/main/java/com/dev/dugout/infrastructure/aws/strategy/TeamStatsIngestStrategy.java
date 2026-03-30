@@ -1,7 +1,7 @@
 package com.dev.dugout.infrastructure.aws.strategy;
 
 
-import com.dev.dugout.domain.team.dto.TeamStatsIngestDto;
+import com.dev.dugout.infrastructure.aws.dto.TeamStatsIngestDto;
 import com.dev.dugout.domain.team.entity.DailyTeamStats;
 import com.dev.dugout.domain.team.entity.Team;
 import com.dev.dugout.domain.team.repository.DailyTeamStatsRepository;

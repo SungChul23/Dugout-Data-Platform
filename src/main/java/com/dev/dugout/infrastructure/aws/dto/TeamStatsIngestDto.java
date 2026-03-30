@@ -1,4 +1,4 @@
-package com.dev.dugout.domain.team.dto;
+package com.dev.dugout.infrastructure.aws.dto;
 
 import com.dev.dugout.domain.team.entity.DailyTeamStats;
 import com.dev.dugout.domain.team.entity.Team;

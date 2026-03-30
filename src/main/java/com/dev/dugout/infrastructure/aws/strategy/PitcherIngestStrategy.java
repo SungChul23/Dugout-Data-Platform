@@ -1,6 +1,6 @@
 package com.dev.dugout.infrastructure.aws.strategy;
 
-import com.dev.dugout.domain.player.dto.PitcherIngestDto;
+import com.dev.dugout.infrastructure.aws.dto.PitcherIngestDto;
 import com.dev.dugout.domain.player.entity.DailyPlayerPitcher;
 import com.dev.dugout.domain.player.entity.Player;
 import com.dev.dugout.domain.player.repository.DailyPlayerPitcherRepository;

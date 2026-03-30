@@ -1,6 +1,6 @@
 package com.dev.dugout.infrastructure.aws.strategy;
 
-import com.dev.dugout.domain.team.dto.TeamRankIngestDto;
+import com.dev.dugout.infrastructure.aws.dto.TeamRankIngestDto;
 import com.dev.dugout.domain.team.entity.DailyTeamRanking;
 import com.dev.dugout.domain.team.entity.Team;
 import com.dev.dugout.domain.team.repository.DailyTeamRankingRepository;

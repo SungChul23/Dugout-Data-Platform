@@ -1,4 +1,4 @@
-package com.dev.dugout.domain.player.dto;
+package com.dev.dugout.infrastructure.aws.dto;
 
 import com.dev.dugout.domain.player.entity.DailyPlayerPitcher;
 import com.dev.dugout.domain.player.entity.Player;
