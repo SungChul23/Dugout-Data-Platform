@@ -23,8 +23,10 @@ public interface DailyTeamRankingRepository extends JpaRepository<DailyTeamRanki
     //특정 날짜의 데이터 존재 여부 확인
     boolean existsByBaseDate(LocalDate baseDate);
 
-
     @Query("SELECT MAX(r.baseDate) FROM DailyTeamRanking r")
     Optional<LocalDate> findMaxBaseDate();
+
+    // 특정 날짜의 특정 팀 순위 조회 (사용자 대시보드 전용 로직)
+    Optional<DailyTeamRanking> findByBaseDateAndTeamId(LocalDate baseDate, Long teamId);
 
 }

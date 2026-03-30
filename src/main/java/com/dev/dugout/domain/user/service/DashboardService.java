@@ -6,9 +6,11 @@ import com.dev.dugout.domain.player.repository.PlayerRepository;
 import com.dev.dugout.domain.team.dto.NewsItemDto;
 import com.dev.dugout.domain.team.dto.NewsResponseDto;
 import com.dev.dugout.domain.team.entity.Team;
+import com.dev.dugout.domain.team.repository.DailyTeamRankingRepository;
 import com.dev.dugout.domain.team.service.NewsService;
 import com.dev.dugout.domain.user.dto.DashboardResponseDto;
 import com.dev.dugout.domain.user.dto.PlayerInsightDto;
+import com.dev.dugout.domain.user.dto.TeamRankSummaryDto;
 import com.dev.dugout.domain.user.entity.User;
 import com.dev.dugout.domain.user.entity.UserDashboard;
 import com.dev.dugout.domain.user.repository.UserDashboardRepository;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +39,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final NewsService newsService; // 기존 뉴스 서비스 디펜던시 인젝션 주입
     private final PlayerRepository playerRepository;
+    private final DailyTeamRankingRepository dailyTeamRankingRepository;
 
 
     //대시보드 선수 추가
@@ -80,7 +84,6 @@ public class DashboardService {
                 .slotNumber(targetSlot)
                 .build());
     }
-
     //대시보드 선수 삭제
     @Transactional
     public void removePlayer(User user, int slotNumber) {
@@ -89,33 +92,47 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public DashboardResponseDto getUserDashboard(User user) {
+        // 1. 유저 정보 및 선호 팀 정보 조회 (Fetch Join 활용 추천)
         User managedUser = userRepository.findByLoginIdWithTeam(user.getLoginId())
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        List<UserDashboard> userSelections = userDashboardRepository.findByUser(managedUser);
-        log.info("====> [DB 조회 결과] 유저: {}, 찾은 데이터 개수: {}", managedUser.getLoginId(), userSelections.size());
-        List<PlayerInsightDto> insights = new ArrayList<>();
         Team team = managedUser.getFavoriteTeam();
+        log.info("====> [대시보드 조회] 유저: {}, 선호 팀: {}", managedUser.getLoginId(), team.getName());
 
-        // 뉴스 데이터 3개 제한
+        // 2. [추가] 선호 팀의 최신 순위 정보 조회
+        // DB에서 가장 최신 날짜를 먼저 찾음 (하드코딩 제거)
+        LocalDate latestDate = dailyTeamRankingRepository.findMaxBaseDate()
+                .orElse(null);
+
+        TeamRankSummaryDto rankSummary = null;
+        if (latestDate != null) {
+            // 해당 날짜의 특정 팀 순위 추출
+            rankSummary = dailyTeamRankingRepository.findByBaseDateAndTeamId(latestDate, team.getId())
+                    .map(ranking -> TeamRankSummaryDto.builder()
+                            .teamId(team.getId())
+                            .rank(ranking.getRank())
+                            .wdl(String.format("%d승-%d무-%d패",
+                                    ranking.getWins(), ranking.getDraws(), ranking.getLosses()))
+                            .winRate(String.format("%.3f", ranking.getWinRate()))
+                            .build())
+                    .orElse(null);
+        }
+
+        // 3. 뉴스 데이터 (3개 제한)
         List<NewsItemDto> limitedNews = newsService.getKboNews(team.getName())
                 .getItems().stream().limit(3).toList();
 
-        // 1~3번 슬롯 구성
+        // 4. 슬롯별 선수 인사이트 구성
+        List<UserDashboard> userSelections = userDashboardRepository.findByUser(managedUser);
+        List<PlayerInsightDto> insights = new ArrayList<>();
+
         for (int slot = 0; slot <= 2; slot++) {
             final int currentSlot = slot;
             Optional<UserDashboard> selection = userSelections.stream()
                     .filter(d -> d.getSlotNumber() == currentSlot).findFirst();
 
             if (selection.isPresent()) {
-                log.info("====> [대시보드 확인] 슬롯: {}, 선수명: {}", currentSlot, selection.get().getPlayer().getName());
-            } else {
-                log.info("====> [대시보드 확인] 슬롯: {} 은 비어있음", currentSlot);
-            }
-
-            if (selection.isPresent()) {
                 Player player = selection.get().getPlayer();
-                // 최신 예측 결과 조회
                 PredictionResult pred = predictionResultRepository.findTopByPlayerOrderByPredictedAtDesc(player).orElse(null);
 
                 PlayerInsightDto.PlayerInsightDtoBuilder builder = PlayerInsightDto.builder()
@@ -124,23 +141,15 @@ public class DashboardService {
                         .name(player.getName())
                         .backNumber(player.getBackNumber())
                         .position(player.getPositionType())
-                        // player 엔티티를 통해 팀 코드 직접 추출
                         .teamCode(player.getTeam() != null ? String.valueOf(player.getTeam().getId()) : null)
                         .isEmpty(false);
 
-                // 투수/타자 지표 분기 매핑
                 if ("투수".equals(player.getPositionType()) && pred != null) {
-                    builder.probElite(pred.getProbElite())
-                            .rolePercentileTop(pred.getRolePercentileTop())
-                            .roleRank(pred.getRoleRank())
-                            .roleTotal(pred.getRoleTotal());
+                    builder.probElite(pred.getProbElite()).rolePercentileTop(pred.getRolePercentileTop())
+                            .roleRank(pred.getRoleRank()).roleTotal(pred.getRoleTotal());
                 } else if (pred != null) {
-                    builder.predictedAvg(pred.getPredAvg())
-                            .predictedHr(pred.getPredHr())
-                            .predictedOps(pred.getPredOps())
-                            .avgDiff(pred.getAvgDiff())
-                            .hrDiff(pred.getHrDiff())
-                            .opsDiff(pred.getOpsDiff());
+                    builder.predictedAvg(pred.getPredAvg()).predictedHr(pred.getPredHr()).predictedOps(pred.getPredOps())
+                            .avgDiff(pred.getAvgDiff()).hrDiff(pred.getHrDiff()).opsDiff(pred.getOpsDiff());
                 }
                 insights.add(builder.build());
             } else {
@@ -148,13 +157,14 @@ public class DashboardService {
             }
         }
 
+        // 5. 최종 대시보드 데이터 빌드
         return DashboardResponseDto.builder()
                 .favoriteTeamName(team.getName())
                 .teamSlogan(team.getSlogan())
                 .bookingUrl(team.getBookingUrl())
+                .teamRank(rankSummary) // [수정됨] 실제 DB 데이터 반영
                 .insights(insights)
                 .news(limitedNews)
                 .build();
     }
-
 }
