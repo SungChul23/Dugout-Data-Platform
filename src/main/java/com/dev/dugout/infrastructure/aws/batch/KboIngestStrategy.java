@@ -1,4 +1,4 @@
-package com.dev.dugout.global.batch;
+package com.dev.dugout.infrastructure.aws.batch;
 
 import java.time.LocalDate;
 

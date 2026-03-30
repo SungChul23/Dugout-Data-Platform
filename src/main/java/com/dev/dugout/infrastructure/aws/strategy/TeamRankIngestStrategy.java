@@ -1,12 +1,12 @@
-package com.dev.dugout.domain.team.strategy;
+package com.dev.dugout.infrastructure.aws.strategy;
 
 import com.dev.dugout.domain.team.dto.TeamRankIngestDto;
 import com.dev.dugout.domain.team.entity.DailyTeamRanking;
 import com.dev.dugout.domain.team.entity.Team;
 import com.dev.dugout.domain.team.repository.DailyTeamRankingRepository;
 import com.dev.dugout.domain.team.repository.TeamRepository;
-import com.dev.dugout.global.batch.KboDataCategory;
-import com.dev.dugout.global.batch.KboIngestStrategy;
+import com.dev.dugout.infrastructure.aws.batch.KboDataCategory;
+import com.dev.dugout.infrastructure.aws.batch.KboIngestStrategy;
 import com.dev.dugout.global.common.S3JsonReader;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;

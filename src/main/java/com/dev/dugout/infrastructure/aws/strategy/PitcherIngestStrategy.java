@@ -1,4 +1,4 @@
-package com.dev.dugout.domain.player.strategy;
+package com.dev.dugout.infrastructure.aws.strategy;
 
 import com.dev.dugout.domain.player.dto.PitcherIngestDto;
 import com.dev.dugout.domain.player.entity.DailyPlayerPitcher;
@@ -7,9 +7,10 @@ import com.dev.dugout.domain.player.repository.DailyPlayerPitcherRepository;
 import com.dev.dugout.domain.player.repository.PlayerRepository;
 import com.dev.dugout.domain.team.entity.Team;
 import com.dev.dugout.domain.team.repository.TeamRepository;
-import com.dev.dugout.global.batch.KboDataCategory;
-import com.dev.dugout.global.batch.KboIngestStrategy;
+import com.dev.dugout.infrastructure.aws.batch.KboDataCategory;
+import com.dev.dugout.infrastructure.aws.batch.KboIngestStrategy;
 import com.dev.dugout.global.common.S3JsonReader;
+import com.dev.dugout.infrastructure.aws.service.PlayerSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,7 @@ public class PitcherIngestStrategy implements KboIngestStrategy {
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
     private final S3JsonReader s3JsonReader;
+    private final PlayerSyncService playerSyncService;
 
     @Override
     public KboDataCategory getCategory() {
@@ -36,13 +39,35 @@ public class PitcherIngestStrategy implements KboIngestStrategy {
     @Override
     @Transactional
     public void ingest(String s3Path, LocalDate baseDate) {
-        List<PitcherIngestDto> dtos = s3JsonReader.read(s3Path, PitcherIngestDto.class);
 
-        // ✨ 결과 수집용 바구니들
+        // 1. S3에서 JSON 데이터 읽기
+        List<PitcherIngestDto> dtos = s3JsonReader.read(s3Path, PitcherIngestDto.class);
+        if (dtos.isEmpty()) {
+            log.info(">>>> [PLAYER_PITCHER] 적재할 데이터가 없습니다.");
+            return;
+        }
+
+        // 2. [선제 방어] 누락된 투수들 먼저 찾아 람다 호출
+        Set<String> pcodesInJson = dtos.stream()
+                .map(PitcherIngestDto::getPcode)
+                .collect(Collectors.toSet());
+
+        Set<String> missingPcodes = pcodesInJson.stream()
+                .filter(pcode -> !playerRepository.existsByKboPcode(pcode))
+                .collect(Collectors.toSet());
+
+        if (!missingPcodes.isEmpty()) {
+            log.info(">>>> 🛠️ 누락된 투수 {}명 발견! 람다 동기화 가동: {}", missingPcodes.size(), missingPcodes);
+            playerSyncService.syncMissingPlayers(missingPcodes);
+        }
+
+        // ---------------------------------------------------------
+
+        // 결과 수집용 바구니
         List<DailyPlayerPitcher> entitiesToSave = new ArrayList<>();
-        Set<String> missingPcodes = new TreeSet<>(); // 정렬된 누락 리스트
         int totalCount = dtos.size();
 
+        log.info(">>>> [PLAYER_PITCHER] 데이터 분석 및 엔티티 변환 시작 (총 {}건)", totalCount);
         log.info(">>>> [PLAYER_PITCHER] 데이터 입고 분석 시작 (총 {}건)", totalCount);
 
         for (PitcherIngestDto dto : dtos) {
@@ -62,12 +87,12 @@ public class PitcherIngestStrategy implements KboIngestStrategy {
             }
         }
 
-        // 3. 존재하는 선수들 데이터만 벌크 저장
+        // 존재하는 선수들 데이터만 벌크 저장
         if (!entitiesToSave.isEmpty()) {
             pitcherRepository.saveAll(entitiesToSave);
         }
 
-        // 📊 [누락 리포트 출력]
+        //  [누락 리포트 출력]
         printMissingReport(totalCount, entitiesToSave.size(), missingPcodes);
     }
 

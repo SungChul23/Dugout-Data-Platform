@@ -10,6 +10,12 @@ import java.util.Optional;
 
 public interface PlayerRepository extends JpaRepository<Player, Long> {
 
+    // 해당 PCODE를 가진 선수 엔티티를 조회
+    Optional<Player> findByKboPcode(String kboPcode);
+
+    // 해당 PCODE를 가진 선수가 이미 DB에 있는지 확인 (존재 여부만)
+    boolean existsByKboPcode(String kboPcode);
+
     // 로스터 조회용
     // 타자 명단 조회
     @Query("SELECT DISTINCT p FROM Player p " +
@@ -30,10 +36,5 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             "AND p.backNumber IS NOT NULL " +
             "ORDER BY CAST(p.backNumber AS integer) ASC")
     List<Player> findPredictablePitchers(@Param("teamName") String teamName);
-
-    // 상세 분석 페이지나 대시보드 추가 시 사용됩니다.
-    Optional<Player> findByKboPcode(String kboPcode);
-
-
 
 }

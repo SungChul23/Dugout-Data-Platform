@@ -1,8 +1,8 @@
 package com.dev.dugout.infrastructure.aws.service;
 
 
-import com.dev.dugout.global.batch.KboDataCategory;
-import com.dev.dugout.global.batch.KboIngestStrategy;
+import com.dev.dugout.infrastructure.aws.batch.KboDataCategory;
+import com.dev.dugout.infrastructure.aws.batch.KboIngestStrategy;
 import com.dev.dugout.infrastructure.aws.dto.KboIngestRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

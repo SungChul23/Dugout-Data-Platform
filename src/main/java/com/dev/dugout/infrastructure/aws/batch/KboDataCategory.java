@@ -1,4 +1,4 @@
-package com.dev.dugout.global.batch;
+package com.dev.dugout.infrastructure.aws.batch;
 
 
 // 스텝펑션(크롤링 자동화 파이프라인)에서 4가지 항목
