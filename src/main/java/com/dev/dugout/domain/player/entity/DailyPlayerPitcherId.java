@@ -10,5 +10,5 @@ import java.time.LocalDate;
 //DailyPlayerPitcher 복합키 생성
 public class DailyPlayerPitcherId implements Serializable {
     private LocalDate baseDate;
-    private Long player;
+    private String player;
 }
