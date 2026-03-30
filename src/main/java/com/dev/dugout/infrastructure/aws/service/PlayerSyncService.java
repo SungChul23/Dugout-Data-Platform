@@ -42,13 +42,13 @@ public class PlayerSyncService {
             // 1. 람다 호출 페이로드(JSON) 생성
             String jsonPayload = objectMapper.writeValueAsString(Map.of("pcodes", missingPcodes));
 
-            // 2. dugout-player-scraper 람다 호출 요청 (SDK v2 방식)
+            // 2. 람다 호출 요청 (SDK v2 방식)
             InvokeRequest invokeRequest = InvokeRequest.builder()
-                    .functionName("dugout-player-scraper")
+                    .functionName("dugout-missing-player-scraper") // 람다 함수명
                     .payload(SdkBytes.fromUtf8String(jsonPayload))
                     .build();
 
-            // 3. 람다 실행 및 응답 수신 (동기 방식)
+            // 3. 람다 실행 및 응답 수신 (동기 방식 - 트리거)
             InvokeResponse response = lambdaClient.invoke(invokeRequest);
             String responseJson = response.payload().asUtf8String();
 
