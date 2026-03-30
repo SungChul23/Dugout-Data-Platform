@@ -24,6 +24,11 @@ public class TeamRankIngestStrategy implements KboIngestStrategy {
     private final TeamRepository teamRepository;
     private final S3JsonReader s3JsonReader;
 
+
+    @Override
+    public boolean isAlreadyIngested(LocalDate baseDate) {
+        return rankingRepository.existsByBaseDate(baseDate);
+    }
     @Override
     public KboDataCategory getCategory() {
         return KboDataCategory.TEAM_RANK;

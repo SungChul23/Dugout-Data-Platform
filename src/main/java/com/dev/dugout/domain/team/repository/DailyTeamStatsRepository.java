@@ -20,4 +20,7 @@ public interface DailyTeamStatsRepository extends JpaRepository<DailyTeamStats, 
 
     // 가장 최근 성적 조회
     Optional<DailyTeamStats> findFirstByTeamIdOrderByBaseDateDesc(Long teamId);
+
+    //특정 날짜의 데이터 존재 여부 확인
+    boolean existsByBaseDate(LocalDate baseDate);
 }

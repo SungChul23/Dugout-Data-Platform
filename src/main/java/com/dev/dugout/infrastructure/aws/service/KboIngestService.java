@@ -32,6 +32,12 @@ public class KboIngestService {
                         .findFirst()
                         .ifPresentOrElse(
                                 strategy -> {
+                                    //  [추가] 중복 적재 방어 로직
+                                    if (strategy.isAlreadyIngested(baseDate)) {
+                                        log.warn(">>>> [{}] 이미 해당 날짜({})의 데이터가 존재하여 건너뜁니다.", category, baseDate);
+                                        return;
+                                    }
+
                                     log.info(">>>> [{}] 입고 시작: {}", category, file.s3Path());
                                     strategy.ingest(file.s3Path(), baseDate);
                                 },

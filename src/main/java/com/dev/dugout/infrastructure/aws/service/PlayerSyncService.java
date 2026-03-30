@@ -16,6 +16,9 @@ import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -28,6 +31,9 @@ public class PlayerSyncService {
     private final PlayerRepository playerRepository;
     private final TeamRepository teamRepository;
     private final ObjectMapper objectMapper;
+
+    // JPA의 영속성 컨텍스트를 직접 제어
+    private final EntityManager entityManager;
 
     //누락된 PCODE 리스트를 받아 람다를 통해 신규 선수를 DB에 등록
     @Transactional
@@ -87,6 +93,15 @@ public class PlayerSyncService {
                     log.info(">>>>  [자동 등록 완료] {} (PCODE: {}, 팀: {})",
                             newPlayer.getName(), pcode, team.getName());
                 }
+                //[핵심 추가] 영속성 컨텍스트 동기화
+                // 1. 현재까지 save한 내용(INSERT 문)을 DB로 즉시 보냄
+                entityManager.flush();
+
+                // 2. 1차 캐시를 비웁니다.
+                // 이렇게 해야 다음 단계(성적 적재)에서 DB를 다시 찔러 신규 선수를 인식
+                entityManager.clear();
+                log.info(">>>> [영속성 컨텍스트 초기화] 이제 다음 공정에서 신규 선수를 인식할 수 있습니다.");
+
             } else {
                 log.warn(">>>> 람다로부터 선수 정보를 받지 못했습니다. (PCODE: {})", missingPcodes);
             }

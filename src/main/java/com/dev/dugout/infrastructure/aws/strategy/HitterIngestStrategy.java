@@ -30,6 +30,12 @@ public class HitterIngestStrategy implements KboIngestStrategy {
     private final S3JsonReader s3JsonReader;
     private final PlayerSyncService playerSyncService;
 
+
+    @Override
+    public boolean isAlreadyIngested(LocalDate baseDate) {
+        // 해당 날짜의 데이터가 하나라도 있으면 이미 적재된 것으로 판단
+        return hitterRepository.existsByBaseDate(baseDate);
+    }
     @Override
     public KboDataCategory getCategory() {
         return KboDataCategory.PLAYER_HITTER;

@@ -20,4 +20,5 @@ public interface DailyTeamRankingRepository extends JpaRepository<DailyTeamRanki
 
     //특정 날짜의 데이터 존재 여부 확인
     boolean existsByBaseDate(LocalDate baseDate);
+
 }

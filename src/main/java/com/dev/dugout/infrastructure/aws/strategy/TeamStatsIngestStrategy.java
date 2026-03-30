@@ -26,6 +26,11 @@ public class TeamStatsIngestStrategy implements KboIngestStrategy {
     private final S3JsonReader s3JsonReader;
 
     @Override
+    public boolean isAlreadyIngested(LocalDate baseDate) {
+        return teamStatsRepository.existsByBaseDate(baseDate);
+    }
+
+    @Override
     public KboDataCategory getCategory() {
         return KboDataCategory.TEAM_STATS;
     }

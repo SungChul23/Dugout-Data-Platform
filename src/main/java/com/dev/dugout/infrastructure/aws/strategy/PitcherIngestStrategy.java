@@ -31,6 +31,11 @@ public class PitcherIngestStrategy implements KboIngestStrategy {
     private final S3JsonReader s3JsonReader;
     private final PlayerSyncService playerSyncService;
 
+
+    @Override
+    public boolean isAlreadyIngested(LocalDate baseDate) {
+        return pitcherRepository.existsByBaseDate(baseDate);
+    }
     @Override
     public KboDataCategory getCategory() {
         return KboDataCategory.PLAYER_PITCHER;
