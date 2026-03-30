@@ -21,7 +21,7 @@ public class DailyPlayerPitcher {
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "kbo_pcode", referencedColumnName = "kbo_pcode")
+    @JoinColumn(name = "player_id")
     private Player player; // Player 테이블의 kbo_pcode와 조인
 
     @ManyToOne(fetch = FetchType.LAZY)
