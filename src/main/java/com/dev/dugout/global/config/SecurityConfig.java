@@ -58,15 +58,16 @@ public class SecurityConfig {
 
                         // 4. [Service] 일반 데이터 조회 (더그아웃의 풍부한 야구 데이터들)
                         .requestMatchers(
-                                "/api/v1/fanexperience/**",
-                                "/api/v1/news/**",
-                                "/api/v1/schedule/**",
-                                "/api/v1/players/**",
-                                "/api/v1/prediction/**",
-                                "/api/v1/fa-market/**",
-                                "/api/v1/tickets/teams",
-                                "/api/v1/notices",
-                                "/api/v1/ingest/kbo/notify"
+                                "/api/v1/fanexperience/**", // 팀추천
+                                "/api/v1/news/**", // 뉴스
+                                "/api/v1/schedule/**", //경기 스케줄
+                                "/api/v1/players/**", // 선수 관련
+                                "/api/v1/prediction/**", // 선수 성적 예측 관련
+                                "/api/v1/fa-market/**", // FA 시장 관련
+                                "/api/v1/tickets/teams", // 티켓팅 관련
+                                "/api/v1/notices", // 공지사항 관련
+                                "/api/v1/ingest/kbo/notify", // 데이터 적재 관련
+                                "/api/v1/team/ranking" // 팀별 순위 관련
                         ).permitAll()
 
                         // 5. [Private] 대시보드 등 개인화 서비스
