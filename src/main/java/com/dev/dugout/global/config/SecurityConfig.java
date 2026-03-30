@@ -67,7 +67,7 @@ public class SecurityConfig {
                                 "/api/v1/tickets/teams", // 티켓팅 관련
                                 "/api/v1/notices", // 공지사항 관련
                                 "/api/v1/ingest/kbo/notify", // 데이터 적재 관련
-                                "/api/v1/team/ranking" // 팀별 순위 관련
+                                "/api/v1/performance/**" // 팀별 순위 관련
                         ).permitAll()
 
                         // 5. [Private] 대시보드 등 개인화 서비스
