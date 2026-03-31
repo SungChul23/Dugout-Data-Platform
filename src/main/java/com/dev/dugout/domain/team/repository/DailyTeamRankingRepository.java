@@ -26,6 +26,10 @@ public interface DailyTeamRankingRepository extends JpaRepository<DailyTeamRanki
     @Query("SELECT MAX(r.baseDate) FROM DailyTeamRanking r")
     Optional<LocalDate> findMaxBaseDate();
 
+    // 날짜 조건 없이 DB에 있는 전체 순위 데이터를 날짜 오름차순으로 싹 다 가져옴 (팀 순위 변동 그래프 전용)
+    @Query("SELECT r FROM DailyTeamRanking r JOIN FETCH r.team ORDER BY r.baseDate ASC")
+    List<DailyTeamRanking> findAllRankingsWithTeam();
+
     // 특정 날짜의 특정 팀 순위 조회 (사용자 대시보드 전용 로직)
     Optional<DailyTeamRanking> findByBaseDateAndTeamId(LocalDate baseDate, Long teamId);
 

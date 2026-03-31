@@ -25,7 +25,7 @@ public class TeamRankingAndPerformanceController {
     // 팀 성적
     @GetMapping("/team-ranking")
     public ResponseEntity<List<TeamRankResponseDto>> getDailyRanking() {
-        List<TeamRankResponseDto> response = teamRankingService.getLatestTeamRankings();
+        List<TeamRankResponseDto> response = teamRankingService.getAllTeamRankings();
         return ResponseEntity.ok(response);
     }
 

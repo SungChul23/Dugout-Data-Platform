@@ -17,13 +17,10 @@ public class TeamRankingService {
     private final DailyTeamRankingRepository rankingRepository;
 
     @Transactional(readOnly = true)
-    public List<TeamRankResponseDto> getLatestTeamRankings() {
-        // [수정] DB에서 가장 최신 날짜를 동적으로 조회
-        LocalDate latestDate = rankingRepository.findMaxBaseDate()
-                .orElseThrow(() -> new RuntimeException("DB에 랭킹 데이터가 존재하지 않습니다."));
+    public List<TeamRankResponseDto> getAllTeamRankings() {
 
-        // 찾아온 최신 날짜로 순위 리스트 조회
-        return rankingRepository.findAllByBaseDateOrderByRankAsc(latestDate).stream()
+        // 조건 없이 싹 다 가져와서 DTO로 변환 후 리턴
+        return rankingRepository.findAllRankingsWithTeam().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
