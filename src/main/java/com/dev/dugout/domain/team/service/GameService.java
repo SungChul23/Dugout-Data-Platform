@@ -35,7 +35,8 @@ public class GameService {
         return GameResponseDto.builder()
                 .id(game.getId())
                 .date(game.getGameDate().toString()) // YYYY-MM-DD
-                .time(game.getGameTime().toString().substring(0, 5)) // HH:mm:ss -> HH:mm
+                // null 체크 추가로 안정성 확보
+                .time(game.getGameTime() != null ? game.getGameTime().toString().substring(0, 5) : "시간미정")
                 .home(game.getHomeTeam().getName()) // 구단 풀네임
                 .away(game.getAwayTeam().getName()) // 구단 풀네임
                 .stadium(game.getHomeTeam().getStadiumName()) // 홈팀의 구장을 가져오자(UX 향상 목적)
