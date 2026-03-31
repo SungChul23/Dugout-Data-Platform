@@ -71,7 +71,7 @@ public class LeaderboardService {
     }
 
     // ==========================================
-    // 3. 🏆 공통 정렬, 필터, 공동 순위 로직
+    // 3.  공통 정렬, 필터, 공동 순위 로직
     // ==========================================
     private <T> LeaderboardDto.Response buildLeaderboard(List<T> data, LeaderboardDto.MetricConfig<T> config, double requiredAmount, boolean isHitter) {
 
@@ -146,7 +146,7 @@ public class LeaderboardService {
     }
 
     // ==========================================
-    // 4. 📊 지표 매핑 (isRateStat 플래그 적용 완료)
+    // 4.  지표 매핑 (isRateStat 플래그 적용 완료)
     // ==========================================
 
     private List<LeaderboardDto.MetricConfig<DailyPlayerHitter>> getNormalHitterConfigs() {
@@ -167,7 +167,7 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("장타율 (SLG)", "slg", "", true, 3, true, DailyPlayerHitter::getSlg),
                 new LeaderboardDto.MetricConfig<>("득점 공헌도 (XR)", "xr", "", true, 2, false, DailyPlayerHitter::getXr),
                 new LeaderboardDto.MetricConfig<>("장타 수 (XBH)", "xbh", "개", true, 0, false, DailyPlayerHitter::getXbh),
-                new LeaderboardDto.MetricConfig<>("대타 타율 (PH BA)", "phBa", "", true, 3, true, DailyPlayerHitter::getPhBa)
+                new LeaderboardDto.MetricConfig<>("결승타 (GW RBI)", "gwRbi", "개", true, 0, false, DailyPlayerHitter::getGwRbi)
         );
     }
 
