@@ -30,18 +30,20 @@ public class LeaderboardDto {
     public static class MetricConfig<T> {
         private final String title;
         private final String key;
-        private final String unit;
-        private final boolean isDesc; // true: 내림차순(높은게 1등), false: 오름차순(낮은게 1등) 중요함 햇갈리지 말기
-        private final int precision;  // 소수점 자릿수 (0이면 정수)
-        private final Function<T, Double> extractor; // 엔티티에서 값을 꺼내는 함수
+        private final String unit; // ~개 (ex: 홈런)
+        private final boolean isDesc; // 내림차순 or 오름차순
+        private final int precision;
+        private final boolean isRateStat; // (비율 스탯 여부)
+        private final Function<T, Double> extractor;
 
-        public MetricConfig(String title, String key, String unit, boolean isDesc, int precision, Function<T, Number> extractor) {
+        // 생성자에 isRateStat 파라미터 추가
+        public MetricConfig(String title, String key, String unit, boolean isDesc, int precision, boolean isRateStat, Function<T, Number> extractor) {
             this.title = title;
             this.key = key;
             this.unit = unit;
             this.isDesc = isDesc;
             this.precision = precision;
-            // 안전한 비교를 위해 Double로 통일
+            this.isRateStat = isRateStat;
             this.extractor = entity -> {
                 Number val = extractor.apply(entity);
                 return val != null ? val.doubleValue() : (isDesc ? -999.0 : 999.0);
