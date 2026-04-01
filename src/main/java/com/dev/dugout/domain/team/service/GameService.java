@@ -39,6 +39,9 @@ public class GameService {
                 .time(game.getGameTime() != null ? game.getGameTime().toString().substring(0, 5) : "시간미정")
                 .home(game.getHomeTeam().getName()) // 구단 풀네임
                 .away(game.getAwayTeam().getName()) // 구단 풀네임
+                // 엔티티의 점수 정보를 DTO에 매핑
+                .homeScore(game.getHomeScore())
+                .awayScore(game.getAwayScore())
                 .stadium(game.getHomeTeam().getStadiumName()) // 홈팀의 구장을 가져오자(UX 향상 목적)
                 .status(game.getStatus() != null ? game.getStatus() : "SCHEDULED")
                 .build();
