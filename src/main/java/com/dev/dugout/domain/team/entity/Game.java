@@ -38,4 +38,10 @@ public class Game {
     private Integer awayScore;
     private String status;
 
+    // Setter 대신 의미 있는 메서드 사용 (더티 체킹 발생)
+    public void updateResult(Integer homeScore, Integer awayScore, String status) {
+        this.homeScore = homeScore;
+        this.awayScore = awayScore;
+        this.status = status;
+    }
 }
