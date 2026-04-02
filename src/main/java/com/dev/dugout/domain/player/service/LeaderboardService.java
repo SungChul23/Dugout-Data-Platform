@@ -178,7 +178,7 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("탈삼진 (SO)", "so", "개", true, 0, false, DailyPlayerPitcher::getSo),
                 new LeaderboardDto.MetricConfig<>("세이브 (SV)", "sv", "세", true, 0, false, DailyPlayerPitcher::getSv),
                 new LeaderboardDto.MetricConfig<>("홀드 (HLD)", "hld", "홀", true, 0, false, DailyPlayerPitcher::getHld),
-                new LeaderboardDto.MetricConfig<>("WHIP", "whip", "", false, 2, true, DailyPlayerPitcher::getWhip)
+                new LeaderboardDto.MetricConfig<>("이닝 (IP)", "ip", "이닝", true, 1, false, DailyPlayerPitcher::getIp)
         );
     }
 
@@ -187,10 +187,11 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("퀄리티 스타트 (QS)", "qs", "회", true, 0, false, DailyPlayerPitcher::getQs),
                 new LeaderboardDto.MetricConfig<>("피안타율 (AVG)", "avg", "", false, 3, true, DailyPlayerPitcher::getAvg),
                 new LeaderboardDto.MetricConfig<>("승률 (WPCT)", "wpct", "", true, 3, true, DailyPlayerPitcher::getWpct),
-                new LeaderboardDto.MetricConfig<>("이닝 (IP)", "ip", "이닝", true, 1, false, DailyPlayerPitcher::getIp),
+                new LeaderboardDto.MetricConfig<>("WHIP", "whip", "", false, 2, true, DailyPlayerPitcher::getWhip),
                 new LeaderboardDto.MetricConfig<>("GO/AO (땅볼 유도)", "goAo", "", true, 2, true, DailyPlayerPitcher::getGoAo),
                 // 블론세이브: 낮을수록 좋음(false), 누적스탯이므로 필터 미적용(false)
                 new LeaderboardDto.MetricConfig<>("블론세이브 (BSV)", "bsv", "개", true, 0, false, DailyPlayerPitcher::getBsv)
         );
     }
 }
+
