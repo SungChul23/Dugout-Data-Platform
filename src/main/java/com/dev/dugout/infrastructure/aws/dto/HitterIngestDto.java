@@ -43,6 +43,14 @@ public class HitterIngestDto {
     @JsonProperty("h_ao") private Integer ao;
     @JsonProperty("h_gw_rbi") private Integer gwRbi;
 
+    // --- [누락된 Count 지표: Integer] ---
+    @JsonProperty("h_bb") private Integer bb;
+    @JsonProperty("h_ibb") private Integer ibb;
+    @JsonProperty("h_hbp") private Integer hbp;
+    @JsonProperty("h_so") private Integer so;
+    @JsonProperty("h_gdp") private Integer gdp;
+
+
     // --- [비율/소수점 지표] ---
     @JsonProperty("h_avg") private BigDecimal avg;
     @JsonProperty("h_slg") private BigDecimal slg;
