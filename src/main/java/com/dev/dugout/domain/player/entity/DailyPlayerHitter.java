@@ -56,6 +56,13 @@ public class DailyPlayerHitter {
     @Column(name = "h_ao") private Integer ao;      // 뜬공
     @Column(name = "h_gw_rbi") private Integer gwRbi; // 결승타
 
+    // --- [누락된 Count 지표: Integer] ---
+    @Column(name = "h_bb") private Integer bb;
+    @Column(name = "h_ibb") private Integer ibb;
+    @Column(name = "h_hbp") private Integer hbp;
+    @Column(name = "h_so") private Integer so;
+    @Column(name = "h_gdp") private Integer gdp;
+
     // --- [Rate/Ratio 지표: BigDecimal] ---
     // 정밀한 계산을 위해 소수점 3자리 이상 보장
     @Column(name = "h_avg", precision = 5, scale = 3) private BigDecimal avg;
