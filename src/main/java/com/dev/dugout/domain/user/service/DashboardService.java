@@ -205,6 +205,14 @@ public class DashboardService {
             stats.put("h_hr", h.getHr());
             stats.put("h_tb", h.getTb());
             stats.put("h_rbi", h.getRbi());
+
+            stats.put("h_bb", h.getBb());
+            stats.put("h_ibb", h.getIbb());
+            stats.put("h_hbp", h.getHbp());
+            stats.put("h_so", h.getSo());
+            stats.put("h_gdp", h.getGdp());
+
+
             stats.put("h_sac", h.getSac());
             stats.put("h_sf", h.getSf());
             stats.put("h_mh", h.getMh());
@@ -212,6 +220,10 @@ public class DashboardService {
             stats.put("h_go", h.getGo());
             stats.put("h_ao", h.getAo());
             stats.put("h_gw_rbi", h.getGwRbi());
+
+
+
+
             // Ratio 지표
             stats.put("h_avg", h.getAvg());
             stats.put("h_slg", h.getSlg());
