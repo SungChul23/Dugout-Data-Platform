@@ -2,6 +2,7 @@ package com.dev.dugout.domain.user.controller;
 
 import com.dev.dugout.domain.user.dto.DashboardRequestDto;
 import com.dev.dugout.domain.user.dto.DashboardResponseDto;
+import com.dev.dugout.domain.user.dto.TeamDailyStatsResponseDto;
 import com.dev.dugout.domain.user.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -47,5 +48,14 @@ public class DashboardController {
             @RequestParam int slotNumber) {
         dashboardService.removePlayer(userPrincipal.getUser(), slotNumber);
         return ResponseEntity.ok().build();
+    }
+
+    // 응원 팀 투수/타자 전체 일일 성적 API (테이블 렌더링용)
+    @GetMapping("/team-daily-stats")
+    public ResponseEntity<TeamDailyStatsResponseDto> getTeamDailyStats(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        TeamDailyStatsResponseDto response = dashboardService.getTeamDailyStats(userPrincipal.getUser());
+        return ResponseEntity.ok(response);
     }
 }
