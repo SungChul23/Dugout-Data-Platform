@@ -89,6 +89,13 @@ public class HitterIngestDto {
                 .go(this.go)
                 .ao(this.ao)
                 .gwRbi(this.gwRbi)
+                // 5개 지표가 누락 확인 및 추가
+                .bb(this.bb)
+                .ibb(this.ibb)
+                .hbp(this.hbp)
+                .so(this.so)
+                .gdp(this.gdp)
+
                 .avg(this.avg)
                 .slg(this.slg)
                 .obp(this.obp)
