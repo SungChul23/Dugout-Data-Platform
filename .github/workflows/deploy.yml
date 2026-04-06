@@ -68,4 +68,5 @@ jobs:
             --aws.s3.master-key=${{ secrets.S3_MASTER_KEY }} \
             --aws.s3.pitcher-master-key=${{ secrets.S3_MASTER_PITCHER_KEY }} \
             --aws.s3.fa-batter-master-key=${{ secrets.S3_FA_BATTER_MASTER_KEY }} \
-            --aws.s3.fa-pitcher-master-key=${{ secrets.S3_FA_PITCHER_MASTER_KEY }} > /home/ubuntu/dugout/app.log 2>&1 &
+            --aws.s3.fa-pitcher-master-key=${{ secrets.S3_FA_PITCHER_MASTER_KEY }} \
+            --aws.lambda.secret-key=${{ secrets.AWS_LAMBDA_SECRET_KEY }} > /home/ubuntu/dugout/app.log 2>&1 &
