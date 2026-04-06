@@ -14,7 +14,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class KboIngestService {
+public class KBODataIngestService {
 
     private final List<KboIngestStrategy> strategyList;
 

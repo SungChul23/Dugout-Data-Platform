@@ -67,6 +67,7 @@ public class SecurityConfig {
                                 "/api/v1/tickets/teams", // 티켓팅 관련
                                 "/api/v1/notices", // 공지사항 관련
                                 "/api/v1/ingest/kbo/notify", // 데이터 적재 관련
+                                "/api/v1/ingest/ml/gg", // 골든글러브 예측 관련
                                 "/api/v1/performance/**",// 팀별 순위 관련
                                 "/api/v1/leaderboard/**" // 지표별 top 5 리더보드 관련
                         ).permitAll()
