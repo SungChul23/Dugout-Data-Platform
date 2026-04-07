@@ -20,18 +20,14 @@ public interface GoldenGlovePredictionRepository extends JpaRepository<GoldenGlo
     Optional<LocalDate> findLatestBaseDate();
 
     // Player 엔티티와 조인하여 g(예측 데이터)와 p.subPositionType(상세 포지션)을 함께 가져옴
-
     @Query("SELECT g, p.subPositionType FROM GoldenGlovePrediction g " +
             "LEFT JOIN Player p ON g.playerCode = p.kboPcode " +
             "WHERE g.baseDate = :baseDate " +
             "AND (" +
-            "  (g.position != 'OF' AND g.rank <= 3) " +
-            "  OR " +
-            "  (g.position = 'OF' AND g.rank <= 6)" +
+            "  (g.position = 'P' AND g.rank <= 3) " +               // 투수 TOP 3
+            "  OR (g.position = 'OF' AND g.rank <= 6) " +             // 외야수 TOP 6
+            "  OR (g.position NOT IN ('P', 'OF') AND g.rank <= 3)" +  // 내야수/포수/지명타자 TOP 3
             ") " +
             "ORDER BY g.position ASC, g.rank ASC")
     List<Object[]> findTopContendersWithSubPosition(@Param("baseDate") LocalDate baseDate);
-
-
-
 }
