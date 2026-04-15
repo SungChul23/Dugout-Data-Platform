@@ -26,16 +26,15 @@ public class KBODataIngestService {
             try {
                 KboDataCategory category = KboDataCategory.valueOf(file.type());
 
-                // 해당 카테고리에 맞는 전략을 찾아서 실행
                 strategyList.stream()
                         .filter(strategy -> strategy.getCategory() == category)
                         .findFirst()
                         .ifPresentOrElse(
                                 strategy -> {
-                                    //  [추가] 중복 적재 방어 로직
+                                    // 무조건 건너뛰는 대신, 상황에 맞게 처리
                                     if (strategy.isAlreadyIngested(baseDate)) {
-                                        log.warn(">>>> [{}] 이미 해당 날짜({})의 데이터가 존재하여 건너뜁니다.", category, baseDate);
-                                        return;
+                                        log.info(">>>> [{}] 이미 데이터가 존재하여 업데이트(재입고)를 진행합니다. 날짜: {}", category, baseDate);
+                                        // 필요하다면 여기서 strategy.deleteExisting(baseDate) 호출
                                     }
 
                                     log.info(">>>> [{}] 입고 시작: {}", category, file.s3Path());
