@@ -186,8 +186,8 @@ public class SchemaContextBuilder {
                 - ai_explanation: AI 분석설명 text
                 주의사항:
                 - 반드시 MAX(base_date) 기준으로 조회
-                - 이 데이터는 실제 골든글러브 결과가 아닌 더그아웃 AI의 예측값임       
-                - 답변 시 반드시 예측값임을 명시하고 골든글러브 수상 예측 메뉴 안내할 것          
+                - 이 데이터는 실제 골든글러브 결과가 아닌 더그아웃 AI의 예측값임
+                - 답변 시 반드시 예측값임을 명시하고 골든글러브 수상 예측 메뉴 안내할 것
                 """),
 
             Map.entry("player", """
