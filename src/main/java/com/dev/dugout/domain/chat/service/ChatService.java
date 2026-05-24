@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChatService {
 
+
+    private final ChatInputValidator chatInputValidator;
     private final SchemaRouter schemaRouter;
     private final LlmSchemaRouter llmSchemaRouter;
     private final SchemaContextBuilder schemaContextBuilder;
@@ -53,6 +55,24 @@ public class ChatService {
         // 1단계: 대화 히스토리 로드
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         List<ConversationMessage> history = getHistory(conversationId);
+
+        // SQL 직접 입력 차단
+        if (chatInputValidator.looksLikeSql(userMessage)) {
+            String rejection = "SQL 쿼리는 직접 입력할 수 없습니다. 😅\n"
+                    + "자연어로 질문해주세요!\n"
+                    + "예) '현재 타율 상위 3명 보여줘', '홈런 1위 타자 누구야?' , '예상 골든글러브 유격수 1위 누구야?' ";
+            saveHistory(conversationId, history, userMessage, rejection);
+            return rejection;
+        }
+
+        // 민감 정보 요청 차단
+        if (chatInputValidator.containsSensitiveRequest(userMessage)) {
+            String rejection = "보안상 해당 요청은 처리할 수 없습니다. 🔒\n"
+                    + "KBO 야구 데이터 관련 질문만 답변 가능합니다!";
+            saveHistory(conversationId, history, userMessage, rejection);
+            return rejection;
+        }
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // 2단계: 야구 도메인 질문인지 확인
