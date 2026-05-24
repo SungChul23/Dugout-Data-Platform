@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class CacheConfig {
 
     //스프링 부트 메모리에 결과를 저장할 수 있도록 Caffeine 캐시를 활성화 (선수들 각 지표별 top 5 리더보드에 사용하기 위함)
+    // 단 챗봇 방식인 경우엔 대화 히스토리를 conversationId(대화 아이디) 별로 직접 관리해야 직접 제어할 예정
     @Bean
     public CacheManager cacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
