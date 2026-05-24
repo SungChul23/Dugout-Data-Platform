@@ -50,15 +50,30 @@ public class ChatBedrockService {
                AND pi.p_ip >= (SELECT MAX(p_g) FROM daily_player_pitcher) * 1.0
                ORDER BY pi.p_era ASC LIMIT 1
             
-            Q: 오늘 경기 결과 알려줘
+            Q: SSG 경기 일정 알려줘
+            A: SELECT g.game_date, g.game_time,
+                ht.name AS home_team, at.name AS away_team,
+                g.stadium_name, g.status,
+                g.home_score, g.away_score
+                FROM game g
+                JOIN team ht ON g.home_team_id = ht.id
+                JOIN team at ON g.away_team_id = at.id
+                WHERE (ht.name LIKE '%SSG%' OR at.name LIKE '%SSG%')
+                AND g.game_date >= CURDATE()
+                ORDER BY g.game_date ASC, g.game_time ASC
+                LIMIT 10
+                
+            Q: 어제 경기 결과 알려줘
             A: SELECT ht.name AS home_team, g.home_score,
-                      at.name AS away_team, g.away_score,
-                      g.status, g.stadium_name
-               FROM game g
-               JOIN team ht ON g.home_team_id = ht.id
-               JOIN team at ON g.away_team_id = at.id
-               WHERE g.game_date = CURDATE()
-               ORDER BY g.game_time
+                at.name AS away_team, g.away_score,
+                g.status, g.stadium_name
+                FROM game g
+                JOIN team ht ON g.home_team_id = ht.id
+                JOIN team at ON g.away_team_id = at.id
+                WHERE g.game_date = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                AND g.status = 'FINISHED'
+                ORDER BY g.game_time ASC
+                
             
             Q: 현재 팀 순위 알려줘
             A: SELECT t.name AS team_name, dr.team_rank,
@@ -70,10 +85,12 @@ public class ChatBedrockService {
             
             Q: FA A등급 선수 알려줘
             A: SELECT player_name, grade, age, sub_position_type,
-                      stat_contribution, fa_status, current_salary
-               FROM fa_market
-               WHERE grade = 'A' AND is_fa_target = 1
-               ORDER BY stat_contribution DESC
+                    stat_contribution, fa_status, current_salary
+              FROM fa_market
+              WHERE grade = 'A'
+              AND is_fa_target = 1
+              AND fa_status != '잔류'    ← 잔류 제외 조건
+              ORDER BY stat_contribution DESC
             """;
 
     // 💡 1차 Bedrock 호출 - SQL 생성
@@ -81,15 +98,24 @@ public class ChatBedrockService {
         log.info("[ChatBedrockService] SQL 생성 요청: {}", question);
 
         String prompt = String.format("""
-                너는 KBO 야구 데이터베이스 전문가야. 아래 스키마를 보고 사용자 질문에 맞는 MySQL SQL을 생성해줘.
-                
-                [중요 규칙]
-                1. SELECT 쿼리만 생성 (INSERT/UPDATE/DELETE/DROP 절대 금지)
-                2. 날짜 조건 미명시 시 반드시 MAX(base_date) 또는 MAX(ranking_date) 사용
-                3. daily_team_ranking은 ranking_date 사용 (base_date 사용 금지!)
-                4. 팀명 검색 시 LIKE '%%팀키워드%%' 사용
-                5. SQL만 반환 (설명 없이 순수 SQL만)
-                6. 마크다운 코드블록 없이 SQL만 반환
+                너는 KBO 야구 데이터 전문 AI 어시스턴트 '더그아웃 AI'야.
+                아래 DB 조회 결과를 바탕으로 사용자 질문에 자연스러운 한국어로 답변해줘.
+        
+                [규칙]
+                1. 친절하고 자연스러운 한국어로 답변
+                2. 데이터가 없으면 "해당 데이터를 찾을 수 없습니다" 안내
+                3. 야구 전문용어는 그대로 사용 (ERA, OPS, WHIP 등)
+                4. 답변은 간결하게, 항목이 많으면 줄바꿈으로 구분
+                5. 이모지 적절히 사용 (⚾ 등)
+                6. "더그아웃 AI 데이터베이스" 같은 불필요한 문구 절대 사용 금지  
+                7. "자세한 정보는 ~에서 확인하세요" 같은 안내 문구 금지         
+                8. FA 등급 관련 답변 시 반드시 이 문구 추가:                    
+                "※ 해당 등급은 더그아웃이 경기력 데이터로 자체 분석한 예측값입니다.
+                정확한 분석은 [FA 시장 등급 분석] 메뉴를 이용해주세요."
+                9. 골든글러브 관련 답변 시 반드시 이 문구 추가:                 
+                "※ 실제 수상이 아닌 더그아웃 AI의 예측 결과입니다.
+                상세 분석은 [골든글러브 수상 예측] 메뉴를 이용해주세요."
+                10. 경기 일정 답변 시 날짜/시간/상대팀/구장 순서로 정리                
                 
                 [DB 스키마]
                 %s

@@ -162,6 +162,10 @@ public class SchemaContextBuilder {
                 - is_fa_target: FA대상여부 bit(1)
                 주의사항:
                 - FA 대상자만 조회 시 is_fa_target = 1 조건 추가
+                - fa_status = '잔류' 인 선수는 반드시 제외
+                - 즉 WHERE fa_status != '잔류' 조건 항상 포함
+                - 이 데이터는 공식 FA 등급이 아닌 더그아웃이 경기력 기반으로 예측한 등급임
+                - 답변 시 반드시 예측값임을 명시하고 FA 시장 등급 분석 메뉴 안내할 것
                 """),
 
             Map.entry("gg_leaderboard", """
@@ -182,6 +186,8 @@ public class SchemaContextBuilder {
                 - ai_explanation: AI 분석설명 text
                 주의사항:
                 - 반드시 MAX(base_date) 기준으로 조회
+                - 이 데이터는 실제 골든글러브 결과가 아닌 더그아웃 AI의 예측값임       
+                - 답변 시 반드시 예측값임을 명시하고 골든글러브 수상 예측 메뉴 안내할 것          
                 """),
 
             Map.entry("player", """
