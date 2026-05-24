@@ -9,7 +9,6 @@ import java.util.List;
 @Component
 public class SqlValidator {
 
-    // 추후 관리가 어려워지면 화이트리스트로 선택하자
     private static final List<String> ALLOWED_TABLES = List.of(
             "daily_player_hitter",
             "daily_player_pitcher",
@@ -38,11 +37,13 @@ public class SqlValidator {
 
         String upperSql = sql.trim().toUpperCase();
 
+        // SELECT로 시작하는지 확인
         if (!upperSql.startsWith("SELECT")) {
             log.warn("[SqlValidator] SELECT가 아닌 SQL 감지: {}", sql);
             throw new IllegalArgumentException("SELECT 쿼리만 허용됩니다.");
         }
 
+        // 위험 키워드 차단
         for (String keyword : DANGEROUS_KEYWORDS) {
             if (upperSql.contains(keyword.toUpperCase())) {
                 log.warn("[SqlValidator] 위험 키워드 감지: {} / SQL: {}", keyword, sql);
@@ -50,6 +51,15 @@ public class SqlValidator {
             }
         }
 
+        // 화이트리스트 테이블 검증
+        boolean hasAllowedTable = ALLOWED_TABLES.stream()
+                .anyMatch(table -> upperSql.contains(table.toUpperCase()));
+        if (!hasAllowedTable) {
+            log.warn("[SqlValidator] 허용되지 않은 테이블 접근 시도: {}", sql);
+            throw new IllegalArgumentException("허용되지 않은 테이블입니다.");
+        }
+
+        // 다중 쿼리 방지
         long semicolonCount = sql.chars().filter(c -> c == ';').count();
         if (semicolonCount > 1) {
             log.warn("[SqlValidator] 다중 쿼리 감지: {}", sql);
@@ -59,9 +69,12 @@ public class SqlValidator {
         log.info("[SqlValidator] SQL 검증 통과");
     }
 
-    // LLM 응답에서 SQL만 추출
-    // 케이스 1: ```sql ... ``` 마크다운 블록
-    // 케이스 2: SQL 앞뒤에 설명 텍스트가 붙은 경우 → SELECT 위치 직접 탐색
+    /**
+     * LLM 응답에서 SQL만 추출
+     * 케이스 1: ```sql ... ``` 마크다운 블록
+     * 케이스 2: ``` ... ``` 마크다운 블록
+     * 케이스 3: SELECT 키워드 직접 탐색 (앞뒤 텍스트 제거)
+     */
     public String extractSql(String rawResponse) {
         if (rawResponse == null || rawResponse.isBlank()) {
             return "";
@@ -87,17 +100,20 @@ public class SqlValidator {
             }
         }
 
-        // 케이스 3: SQL 앞뒤에 설명 텍스트가 붙은 경우
-        // → 대소문자 무관하게 SELECT 키워드 위치 탐색
+        // 케이스 3: SELECT 키워드 직접 탐색
+        // >= 0 으로 SELECT가 맨 앞(index=0)인 경우도 처리
         int selectIndex = cleaned.toUpperCase().indexOf("SELECT");
-        if (selectIndex > 0) {
-            log.info("[SqlValidator] SELECT 앞에 불필요한 텍스트 감지 → 자동 제거");
+        if (selectIndex >= 0) {
+            if (selectIndex > 0) {
+                log.info("[SqlValidator] SELECT 앞 불필요한 텍스트 제거");
+            }
             cleaned = cleaned.substring(selectIndex);
 
-            // 세미콜론 이후 텍스트 제거
+            // 세미콜론 이후 텍스트 항상 제거
             int semicolonIndex = cleaned.indexOf(';');
             if (semicolonIndex >= 0) {
                 cleaned = cleaned.substring(0, semicolonIndex + 1);
+                log.info("[SqlValidator] 세미콜론 이후 텍스트 제거");
             }
             return cleaned.trim();
         }
