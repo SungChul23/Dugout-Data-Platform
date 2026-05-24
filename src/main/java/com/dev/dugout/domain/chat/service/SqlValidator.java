@@ -9,6 +9,7 @@ import java.util.List;
 @Component
 public class SqlValidator {
 
+    // 추후 관리가 어려워지면 화이트리스트로 선택하자
     private static final List<String> ALLOWED_TABLES = List.of(
             "daily_player_hitter",
             "daily_player_pitcher",
