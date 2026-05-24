@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-// 역할: 선택된 테이블의 실제 컬럼 설명 구성
 @Component
 public class SchemaContextBuilder {
 
@@ -75,7 +74,11 @@ public class SchemaContextBuilder {
                 - games_played: 경기수 int
                 - win_rate: 승률 decimal(5,3)
                 - games_behind: 승차 decimal(4,1)
-                - streak: 연승/연패 varchar (예: '3연승', '2연패')
+                - streak: 연속 기록 varchar
+                  형식: 숫자 + 승/패 (예: '2승', '5패', '1승')
+                  주의: '연승' '연패' 형식이 아님
+                  연승 중인 팀 조회: streak LIKE '%%승%%'
+                  연패 중인 팀 조회: streak LIKE '%%패%%'
                 - last10games: 최근 10경기 결과 varchar
                 - home_record: 홈 성적 varchar
                 - away_record: 원정 성적 varchar
@@ -162,10 +165,6 @@ public class SchemaContextBuilder {
                 - is_fa_target: FA대상여부 bit(1)
                 주의사항:
                 - FA 대상자만 조회 시 is_fa_target = 1 조건 추가
-                - fa_status = '잔류' 인 선수는 반드시 제외
-                - 즉 WHERE fa_status != '잔류' 조건 항상 포함
-                - 이 데이터는 공식 FA 등급이 아닌 더그아웃이 경기력 기반으로 예측한 등급임
-                - 답변 시 반드시 예측값임을 명시하고 FA 시장 등급 분석 메뉴 안내할 것
                 """),
 
             Map.entry("gg_leaderboard", """
@@ -186,8 +185,6 @@ public class SchemaContextBuilder {
                 - ai_explanation: AI 분석설명 text
                 주의사항:
                 - 반드시 MAX(base_date) 기준으로 조회
-                - 이 데이터는 실제 골든글러브 결과가 아닌 더그아웃 AI의 예측값임
-                - 답변 시 반드시 예측값임을 명시하고 골든글러브 수상 예측 메뉴 안내할 것
                 """),
 
             Map.entry("player", """
@@ -228,7 +225,9 @@ public class SchemaContextBuilder {
                 """)
     );
 
-    //선택된 테이블 목록으로 스키마 문자열 구성
+    /**
+     * 선택된 테이블 목록으로 스키마 문자열 구성
+     */
     public String buildSchema(List<String> selectedTables) {
         return selectedTables.stream()
                 .distinct()
@@ -237,7 +236,9 @@ public class SchemaContextBuilder {
                 .collect(Collectors.joining("\n"));
     }
 
-    //전체 테이블 목록 (LLM 라우팅용 - 설명만 포함)
+    /**
+     * 전체 테이블 목록 (LLM 라우팅용 - 설명만 포함)
+     */
     public String buildTableListForRouting() {
         return """
                 사용 가능한 테이블 목록:

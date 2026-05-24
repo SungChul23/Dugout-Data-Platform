@@ -75,6 +75,22 @@ public class ChatBedrockService {
                WHERE dr.ranking_date = (SELECT MAX(ranking_date) FROM daily_team_ranking)
                ORDER BY dr.team_rank ASC;
             
+            Q: 연승 중인 팀 있어?
+            A: SELECT t.name AS team_name, dr.streak, dr.team_rank
+               FROM daily_team_ranking dr
+               JOIN team t ON dr.team_id = t.id
+               WHERE dr.ranking_date = (SELECT MAX(ranking_date) FROM daily_team_ranking)
+               AND dr.streak LIKE '%승%'
+               ORDER BY CAST(REPLACE(dr.streak, '승', '') AS SIGNED) DESC;
+            
+            Q: 연패 중인 팀 어디야?
+            A: SELECT t.name AS team_name, dr.streak, dr.team_rank
+               FROM daily_team_ranking dr
+               JOIN team t ON dr.team_id = t.id
+               WHERE dr.ranking_date = (SELECT MAX(ranking_date) FROM daily_team_ranking)
+               AND dr.streak LIKE '%패%'
+               ORDER BY CAST(REPLACE(dr.streak, '패', '') AS SIGNED) DESC;
+            
             Q: FA A등급 선수 알려줘
             A: SELECT player_name, grade, age, sub_position_type,
                       stat_contribution, fa_status, current_salary
