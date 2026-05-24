@@ -53,11 +53,12 @@ public class SecurityConfig {
                         // 2. [Members] 누구나 접근 가능한 문 (로그인, 회원가입 등)
                         .requestMatchers("/api/v1/members/login", "/api/v1/members/signup", "/api/v1/members/check-id").permitAll()
 
-                        // 3. [Members] 로그인한 사람만 들어올 수 있는 방 (내 정보, 로그아웃, 탈퇴)
-                        .requestMatchers("/api/v1/members/me", "/api/v1/members/logout").authenticated()
+                        // 3. [Members] 로그인한 사람만 들어올 수 있는 방 (로그아웃, 탈퇴)
+                        .requestMatchers("/api/v1/members/logout").authenticated()
 
                         // 4. [Service] 일반 데이터 조회 (더그아웃의 풍부한 야구 데이터들)
                         .requestMatchers(
+                                "/api/v1/members/me", //로그인 상태 확인
                                 "/api/v1/fanexperience/**", // 팀추천
                                 "/api/v1/news/**", // 뉴스
                                 "/api/v1/schedule/**", //경기 스케줄
