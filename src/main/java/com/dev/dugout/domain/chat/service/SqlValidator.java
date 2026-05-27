@@ -24,7 +24,7 @@ public class SqlValidator {
 
     private static final List<String> DANGEROUS_KEYWORDS = List.of(
             "DROP", "DELETE", "UPDATE", "INSERT", "ALTER",
-            "TRUNCATE", "CREATE", "REPLACE", "MERGE",
+            "TRUNCATE", "CREATE", "REPLACE INTO", "MERGE",
             "EXEC", "EXECUTE", "CALL", "GRANT", "REVOKE",
             "users", "refresh_tokens", "forbidden_words",
             "user_dashboard", "user_prediction_limit"
