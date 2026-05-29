@@ -23,7 +23,7 @@ public class ChatBedrockService {
     private static final String MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
 
     private static final String FEW_SHOT_EXAMPLES = """
-            [Few-shot 예시 - 반드시 아래 패턴처럼 SQL만 반환할 것]
+            [Few-shot 예시 - SQL 패턴 참고용, 대화 히스토리 아님. 반드시 SQL만 반환할 것]
             
             Q: 홈런 1위 타자 알려줘
             A: SELECT p.name, h.h_hr, t.name AS team_name
@@ -105,9 +105,9 @@ public class ChatBedrockService {
                       p.back_number, t.name AS team_name
                FROM player p
                JOIN team t ON p.team_id = t.id
-               WHERE p.name = 'OOO';
-            
-            Q: 김도영 어떤 선수야?
+               WHERE p.name = 'OOO'
+               
+            Q: 특정 선수 현재 성적 조회 예시
             A: SELECT p.name, p.position_type, p.back_number,
                       t.name AS team_name,
                       h.h_avg, h.h_hr, h.h_ops
@@ -115,7 +115,8 @@ public class ChatBedrockService {
                JOIN team t ON p.team_id = t.id
                LEFT JOIN daily_player_hitter h ON h.player_id = p.player_id
                AND h.base_date = (SELECT MAX(base_date) FROM daily_player_hitter)
-               WHERE p.name = '김도영';
+               WHERE p.name = 'OOO';
+                  
             """;
 
     /**
@@ -141,6 +142,8 @@ public class ChatBedrockService {
                 11. 선수 정보 질문(~알아? ~누구야? ~어떤 선수?)도
                     반드시 player/daily_player_hitter/pitcher 테이블을 SQL로 조회
                     절대 학습 데이터로 직접 답변 금지
+                12. few-show의 예시는 SQL 패턴 참고용일 뿐,
+                    대화 히스토리가 아니므로, "이전에 언급한 선수" 로 절대 간주하지 말 것
                 
                 [DB 스키마]
                 %s
