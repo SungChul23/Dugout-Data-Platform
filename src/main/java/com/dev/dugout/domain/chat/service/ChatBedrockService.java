@@ -100,12 +100,12 @@ public class ChatBedrockService {
                AND fa_status != '잔류'
                ORDER BY stat_contribution DESC;
             
-            Q: 박성한 알아?
+            Q: 특정 선수 정보 조회 예시
             A: SELECT p.name, p.position_type, p.sub_position_type,
                       p.back_number, t.name AS team_name
                FROM player p
                JOIN team t ON p.team_id = t.id
-               WHERE p.name = '박성한';
+               WHERE p.name = 'OOO';
             
             Q: 김도영 어떤 선수야?
             A: SELECT p.name, p.position_type, p.back_number,
