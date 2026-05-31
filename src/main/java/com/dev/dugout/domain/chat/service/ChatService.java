@@ -105,8 +105,20 @@ public class ChatService {
         // 5단계: Bedrock 1차 호출 - SQL 생성
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         String rawSql = chatBedrockService.generateSql(schema, historyText, userMessage);
+
+        if ("NO_SQL".equals(rawSql.trim())) {
+            log.info("[ChatService] 단순 일상 대화 감지 (NO_SQL 우회)");
+            String greetingAnswer = "안녕하세요! KBO 야구 데이터 전문 AI 어시스턴트 '더그아웃 AI'입니다. 팀 순위, 선수 성적, 일정 , 수상 정보, FA 등 궁금한 점을 편하게 물어보세요! ";
+
+            // 대화 기록에 저장 후 바로 반환
+            saveHistory(conversationId, history, userMessage, greetingAnswer);
+            return greetingAnswer;
+        }
+
         String sql = sqlValidator.extractSql(rawSql);
         log.info("[ChatService] 생성된 SQL: {}", sql);
+
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // 6단계: SQL 검증

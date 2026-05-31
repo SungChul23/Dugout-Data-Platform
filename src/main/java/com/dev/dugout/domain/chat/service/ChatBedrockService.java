@@ -144,6 +144,7 @@ public class ChatBedrockService {
                     절대 학습 데이터로 직접 답변 금지
                 12. few-show의 예시는 SQL 패턴 참고용일 뿐,
                     대화 히스토리가 아니므로, "이전에 언급한 선수" 로 절대 간주하지 말 것
+                13. 만약 사용자의 질문이 "안녕", "반가워", "너 누구야?" 같은 단순 인사말이거나, 야구 데이터 DB 조회가 전혀 필요 없는 일상 대화라면 절대 SQL을 생성하지 말고 오직 `NO_SQL` 이라는 문자열만 반환할 것.
                 
                 [DB 스키마]
                 %s
@@ -170,6 +171,8 @@ public class ChatBedrockService {
     /**
      * 2차 Bedrock 호출 - 자연어 답변 생성
      */
+
+
     public String generateAnswer(String question, List<Map<String, Object>> dbResult) {
         log.info("[ChatBedrockService] 자연어 변환 요청");
 
@@ -196,6 +199,12 @@ public class ChatBedrockService {
                 10. 경기 일정 답변 시 날짜 / 시간 / 상대팀 / 구장 순서로 정리
                 11. 야구 데이터 외 개인정보, 회원정보, 이메일, 비밀번호 관련 내용은 절대 언급하거나 응답하지 말 것
                 
+                [가독성 및 출력 포맷 규칙 - 중요]
+                1. 표 자동 생성: 조회된 선수(또는 데이터)가 3건 이상인 다건의 목록일 경우, 사용자가 명시적으로 표를 요구하지 않더라도 반드시 마크다운 표(Markdown Table) 형식으로 결과를 정리하여 먼저 출력하세요.
+                2. 타율(AVG) 데이터는 반드시 소수점 세째 자리까지 반올림하여 야구 표준 방식(예: 0.282)으로 명확히 표기하세요.
+                3. 표를 출력한 후, 그 아래에 1~2줄로 데이터에 대한 짧은 AI 인사이트 해설을 덧붙이세요.        
+               
+                                
                 [사용자 질문]
                 %s
                 
