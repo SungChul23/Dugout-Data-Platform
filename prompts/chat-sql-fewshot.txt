@@ -1,0 +1,58 @@
+[SQL 패턴 예시 - 참고용, 대화 히스토리 아님]
+
+# 특정 선수 조회 → 규정 조건 없음
+Q: {선수명} 타자 성적
+A: SELECT p.name, h.h_avg, h.h_hr, h.h_ops, h.h_rbi, t.name AS team_name
+   FROM daily_player_hitter h
+   JOIN player p ON h.player_id = p.player_id
+   JOIN team t ON h.team_id = t.id
+   WHERE p.name = '{선수명}'
+   AND h.base_date = (SELECT MAX(base_date) FROM daily_player_hitter);
+
+Q: {선수명} 투수 성적
+A: SELECT p.name, pi.p_era, pi.p_whip, pi.p_so, pi.p_w, pi.p_l, pi.p_ip, t.name AS team_name
+   FROM daily_player_pitcher pi
+   JOIN player p ON pi.player_id = p.player_id
+   JOIN team t ON pi.team_id = t.id
+   WHERE p.name = '{선수명}'
+   AND pi.base_date = (SELECT MAX(base_date) FROM daily_player_pitcher);
+
+# 리그 순위 조회 → 규정 조건 있음
+Q: 홈런 1위 타자
+A: SELECT p.name, h.h_hr, t.name AS team_name
+   FROM daily_player_hitter h
+   JOIN player p ON h.player_id = p.player_id
+   JOIN team t ON h.team_id = t.id
+   WHERE h.base_date = (SELECT MAX(base_date) FROM daily_player_hitter)
+   AND h.h_pa >= (SELECT MAX(h_g) FROM daily_player_hitter) * 3.1
+   ORDER BY h.h_hr DESC LIMIT 1;
+
+Q: ERA 낮은 투수 순위
+A: SELECT p.name, pi.p_era, t.name AS team_name
+   FROM daily_player_pitcher pi
+   JOIN player p ON pi.player_id = p.player_id
+   JOIN team t ON pi.team_id = t.id
+   WHERE pi.base_date = (SELECT MAX(base_date) FROM daily_player_pitcher)
+   AND pi.p_ip >= (SELECT MAX(p_g) FROM daily_player_pitcher) * 1.0
+   ORDER BY pi.p_era ASC LIMIT 10;
+
+# 팀 관련 조회
+Q: {팀명} 경기 일정
+A: SELECT g.game_date, g.game_time,
+          ht.name AS home_team, at.name AS away_team,
+          g.stadium_name, g.status
+   FROM game g
+   JOIN team ht ON g.home_team_id = ht.id
+   JOIN team at ON g.away_team_id = at.id
+   WHERE (ht.name LIKE '%{팀명}%' OR at.name LIKE '%{팀명}%')
+   AND g.game_date >= CURDATE()
+   ORDER BY g.game_date ASC, g.game_time ASC
+   LIMIT 10;
+
+Q: 현재 팀 순위
+A: SELECT t.name AS team_name, dr.team_rank,
+          dr.wins, dr.losses, dr.draws, dr.win_rate, dr.streak
+   FROM daily_team_ranking dr
+   JOIN team t ON dr.team_id = t.id
+   WHERE dr.ranking_date = (SELECT MAX(ranking_date) FROM daily_team_ranking)
+   ORDER BY dr.team_rank ASC;
