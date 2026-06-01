@@ -156,7 +156,9 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("타점 (RBI)", "rbi", "점", true, 0, false, DailyPlayerHitter::getRbi),
                 new LeaderboardDto.MetricConfig<>("안타 (H)", "h", "개", true, 0, false, DailyPlayerHitter::getH),
                 new LeaderboardDto.MetricConfig<>("득점 (R)", "r", "점", true, 0, false, DailyPlayerHitter::getR),
-                new LeaderboardDto.MetricConfig<>("OPS", "ops", "", true, 3, true, DailyPlayerHitter::getOps)
+                new LeaderboardDto.MetricConfig<>("OPS", "ops", "", true, 3, true, DailyPlayerHitter::getOps),
+                new LeaderboardDto.MetricConfig<>("멀티히트 (MH)", "mh", "회", true, 0, false, DailyPlayerHitter::getMh),
+                new LeaderboardDto.MetricConfig<>("루타 (TB)", "tb", "루타", true, 0, false, DailyPlayerHitter::getTb)
         );
     }
 
@@ -167,7 +169,8 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("장타율 (SLG)", "slg", "", true, 3, true, DailyPlayerHitter::getSlg),
                 new LeaderboardDto.MetricConfig<>("득점 공헌도 (XR)", "xr", "", true, 2, false, DailyPlayerHitter::getXr),
                 new LeaderboardDto.MetricConfig<>("장타 수 (XBH)", "xbh", "개", true, 0, false, DailyPlayerHitter::getXbh),
-                new LeaderboardDto.MetricConfig<>("결승타 (GW RBI)", "gwRbi", "개", true, 0, false, DailyPlayerHitter::getGwRbi)
+                new LeaderboardDto.MetricConfig<>("순수장타율 (ISO)", "isop", "", true, 3, true, DailyPlayerHitter::getIsop),
+                new LeaderboardDto.MetricConfig<>("삼진 (SO)", "so", "개", false, 0, true, DailyPlayerHitter::getSo)
         );
     }
 
@@ -178,7 +181,9 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("탈삼진 (SO)", "so", "개", true, 0, false, DailyPlayerPitcher::getSo),
                 new LeaderboardDto.MetricConfig<>("세이브 (SV)", "sv", "세", true, 0, false, DailyPlayerPitcher::getSv),
                 new LeaderboardDto.MetricConfig<>("홀드 (HLD)", "hld", "홀", true, 0, false, DailyPlayerPitcher::getHld),
-                new LeaderboardDto.MetricConfig<>("이닝 (IP)", "ip", "이닝", true, 1, false, DailyPlayerPitcher::getIp)
+                new LeaderboardDto.MetricConfig<>("이닝 (IP)", "ip", "이닝", true, 1, false, DailyPlayerPitcher::getIp),
+                new LeaderboardDto.MetricConfig<>("볼넷 허용 (BB)", "bb", "개", false, 0, false, DailyPlayerPitcher::getBb),
+                new LeaderboardDto.MetricConfig<>("실점 (R)", "r", "점", false, 0, false, DailyPlayerPitcher::getR)
         );
     }
 
@@ -189,8 +194,21 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("승률 (WPCT)", "wpct", "", true, 3, true, DailyPlayerPitcher::getWpct),
                 new LeaderboardDto.MetricConfig<>("WHIP", "whip", "", false, 2, true, DailyPlayerPitcher::getWhip),
                 new LeaderboardDto.MetricConfig<>("GO/AO (땅볼 유도)", "goAo", "", true, 2, true, DailyPlayerPitcher::getGoAo),
-                // 블론세이브: 낮을수록 좋음(false), 누적스탯이므로 필터 미적용(false)
-                new LeaderboardDto.MetricConfig<>("블론세이브 (BSV)", "bsv", "개", true, 0, false, DailyPlayerPitcher::getBsv)
+                new LeaderboardDto.MetricConfig<>("블론세이브 (BSV)", "bsv", "개", true, 0, false, DailyPlayerPitcher::getBsv),
+                new LeaderboardDto.MetricConfig<>("구원승 (Wgr)", "wgr", "승", true, 0, false, DailyPlayerPitcher::getWgr),
+                new LeaderboardDto.MetricConfig<>("BABIP (인플레이 타구 비율)", "babip", "", false, 3, true,
+                        p -> {
+                            // BABIP = (H - HR) / (BF - SO - BB - HBP - HR)
+                            // 필드: h, hr, tbf(BF), so, bb, hbp
+                            if (p.getH() == null || p.getHr() == null || p.getTbf() == null
+                                    || p.getSo() == null || p.getBb() == null || p.getHbp() == null) {
+                                return 999; // null이면 순위 밀려남
+                            }
+                            double numerator = p.getH() - p.getHr();
+                            double denominator = p.getTbf() - p.getSo() - p.getBb() - p.getHbp() - p.getHr();
+                            if (denominator <= 0) return 999; // 분모 0 방어
+                            return numerator / denominator;
+                        })
         );
     }
 }
