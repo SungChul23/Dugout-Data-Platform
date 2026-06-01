@@ -170,7 +170,8 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("득점 공헌도 (XR)", "xr", "", true, 2, false, DailyPlayerHitter::getXr),
                 new LeaderboardDto.MetricConfig<>("장타 수 (XBH)", "xbh", "개", true, 0, false, DailyPlayerHitter::getXbh),
                 new LeaderboardDto.MetricConfig<>("순수장타율 (ISO)", "isop", "", true, 3, true, DailyPlayerHitter::getIsop),
-                new LeaderboardDto.MetricConfig<>("삼진 (SO)", "so", "개", false, 0, true, DailyPlayerHitter::getSo)
+                new LeaderboardDto.MetricConfig<>("결승타 (GW RBI)", "gwRbi", "개", true, 0, false, DailyPlayerHitter::getGwRbi),
+                new LeaderboardDto.MetricConfig<>("삼진 (SO)", "so", "개", true, 0, true, DailyPlayerHitter::getSo)
         );
     }
 
@@ -182,8 +183,8 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("세이브 (SV)", "sv", "세", true, 0, false, DailyPlayerPitcher::getSv),
                 new LeaderboardDto.MetricConfig<>("홀드 (HLD)", "hld", "홀", true, 0, false, DailyPlayerPitcher::getHld),
                 new LeaderboardDto.MetricConfig<>("이닝 (IP)", "ip", "이닝", true, 1, false, DailyPlayerPitcher::getIp),
-                new LeaderboardDto.MetricConfig<>("볼넷 허용 (BB)", "bb", "개", false, 0, false, DailyPlayerPitcher::getBb),
-                new LeaderboardDto.MetricConfig<>("실점 (R)", "r", "점", false, 0, false, DailyPlayerPitcher::getR)
+                new LeaderboardDto.MetricConfig<>("볼넷 허용 (BB)", "bb", "개", true, 0, false, DailyPlayerPitcher::getBb),
+                new LeaderboardDto.MetricConfig<>("실점 (R)", "r", "점", true, 0, false, DailyPlayerPitcher::getR)
         );
     }
 
@@ -194,7 +195,6 @@ public class LeaderboardService {
                 new LeaderboardDto.MetricConfig<>("승률 (WPCT)", "wpct", "", true, 3, true, DailyPlayerPitcher::getWpct),
                 new LeaderboardDto.MetricConfig<>("WHIP", "whip", "", false, 2, true, DailyPlayerPitcher::getWhip),
                 new LeaderboardDto.MetricConfig<>("GO/AO (땅볼 유도)", "goAo", "", true, 2, true, DailyPlayerPitcher::getGoAo),
-                new LeaderboardDto.MetricConfig<>("블론세이브 (BSV)", "bsv", "개", true, 0, false, DailyPlayerPitcher::getBsv),
                 new LeaderboardDto.MetricConfig<>("구원승 (Wgr)", "wgr", "승", true, 0, false, DailyPlayerPitcher::getWgr),
                 new LeaderboardDto.MetricConfig<>("BABIP (인플레이 타구 비율)", "babip", "", false, 3, true,
                         p -> {
@@ -208,7 +208,10 @@ public class LeaderboardService {
                             double denominator = p.getTbf() - p.getSo() - p.getBb() - p.getHbp() - p.getHr();
                             if (denominator <= 0) return 999; // 분모 0 방어
                             return numerator / denominator;
-                        })
+                        }),
+                new LeaderboardDto.MetricConfig<>("블론세이브 (BSV)", "bsv", "개", true, 0, false, DailyPlayerPitcher::getBsv)
+
+
         );
     }
 }
