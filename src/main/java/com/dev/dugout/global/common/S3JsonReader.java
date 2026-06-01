@@ -3,6 +3,7 @@ package com.dev.dugout.global.common;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -20,6 +21,9 @@ public class S3JsonReader {
     private final S3Client s3Client; // AWS SDK 설정 필요
     private final ObjectMapper objectMapper; // 스프링이 제공하는 JSON 변환기
 
+    @Value("${aws.s3.bucket}")
+    private String bucketName;
+
 
     //S3에서 JSON 파일을 읽어 지정한 클래스의 리스트로 반환
     public <T> List<T> read(String s3Path, Class<T> clazz) {
@@ -30,7 +34,7 @@ public class S3JsonReader {
         try {
             // 1. S3에 파일 요청
             ResponseInputStream<GetObjectResponse> s3is = s3Client.getObject(GetObjectRequest.builder()
-                    .bucket("dugout-kbo-raw-data") // 성철 님 버킷명
+                    .bucket(bucketName)
                     .key(jsonPath)
                     .build());
 
