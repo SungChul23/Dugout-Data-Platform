@@ -56,3 +56,17 @@ A: SELECT t.name AS team_name, dr.team_rank,
    JOIN team t ON dr.team_id = t.id
    WHERE dr.ranking_date = (SELECT MAX(ranking_date) FROM daily_team_ranking)
    ORDER BY dr.team_rank ASC;
+
+# 선수 이름만 있고 포지션 모를 때 → LEFT JOIN으로 둘 다 조회
+Q: {선수명} 성적
+A: SELECT p.name, p.position_type,
+          h.h_avg, h.h_hr, h.h_ops, h.h_rbi,
+          pi.p_era, pi.p_whip, pi.p_ip, pi.p_w, pi.p_l
+   FROM player p
+   LEFT JOIN daily_player_hitter h
+       ON h.player_id = p.player_id
+       AND h.base_date = (SELECT MAX(base_date) FROM daily_player_hitter)
+   LEFT JOIN daily_player_pitcher pi
+       ON pi.player_id = p.player_id
+       AND pi.base_date = (SELECT MAX(base_date) FROM daily_player_pitcher)
+   WHERE p.name = '{선수명}';

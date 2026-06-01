@@ -69,6 +69,11 @@ public class SchemaRouter {
             Map.entry(
                     List.of("골든글러브", "골글", "수상", "골든장갑"),
                     List.of("gg_leaderboard", "player")
+            ),
+
+            Map.entry(
+                    List.of("성적"),
+                    List.of("daily_player_hitter", "daily_player_pitcher", "player", "team")
             )
     );
 
