@@ -18,49 +18,44 @@ public class S3Service {
 
     private final S3Client s3Client;
 
-    @Value("${aws.s3.bucket}")
-    private String bucketName;
 
-    @Value("${aws.s3.master-key}") // 타자 성적 예측 마스터 키
+    @Value("${aws.s3.master-bucket}")
+    private String masterBucketName;
+
+    @Value("${aws.s3.master-key}")
     private String batterMasterKey;
 
-    @Value("${aws.s3.pitcher-master-key}") // 투수 성적 예측 마스터 키 추가
+    @Value("${aws.s3.pitcher-master-key}")
     private String pitcherMasterKey;
 
-    @Value("${aws.s3.fa-batter-master-key}") // 타자 FA 평가 마스터 키
+    @Value("${aws.s3.fa-batter-master-key}")
     private String faBatterMasterKey;
-    @Value("${aws.s3.fa-pitcher-master-key}") // 투수 FA 평가 마스터 키
+
+    @Value("${aws.s3.fa-pitcher-master-key}")
     private String faPitcherMasterKey;
 
-
-    // FA 타자 마스터 데이터 로드
     public String fetchFaBatterMasterJson() {
         return fetchFromS3(faBatterMasterKey, "FA 타자");
     }
 
-    // FA 투수 마스터 데이터 로드
     public String fetchFaPitcherMasterJson() {
         return fetchFromS3(faPitcherMasterKey, "FA 투수");
     }
 
-
-    //타자 마스터 데이터 로드
     public String fetchMasterJson() {
         return fetchFromS3(batterMasterKey, "타자");
     }
 
-    //투수 마스터 데이터 로드
     public String fetchPitcherMasterJson() {
         return fetchFromS3(pitcherMasterKey, "투수");
     }
 
-    //S3에서 JSON 파일을 가져오는 공통 로직
     private String fetchFromS3(String key, String type) {
         try {
-            log.info("====> [S3] {} 마스터 데이터 로드 시도 (Bucket: {}, Key: {})", type, bucketName, key);
+            log.info("====> [S3] {} 마스터 데이터 로드 시도 (Bucket: {}, Key: {})", type, masterBucketName, key);
 
             GetObjectRequest request = GetObjectRequest.builder()
-                    .bucket(bucketName)
+                    .bucket(masterBucketName)
                     .key(key)
                     .build();
 
