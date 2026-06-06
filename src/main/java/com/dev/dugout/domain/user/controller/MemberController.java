@@ -6,6 +6,14 @@ import com.dev.dugout.domain.user.dto.NicknameCheckResponseDto;
 import com.dev.dugout.domain.user.dto.SignupRequestDto;
 import com.dev.dugout.domain.user.service.MemberService;
 import com.dev.dugout.global.jwt.JwtTokenProvider;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +24,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 
+@Tag(name = "User", description = "회원 인증 및 개인화 대시보드 API")
+@ApiResponses({
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+})
 @RestController
 @RequestMapping("/api/v1/members")
 @RequiredArgsConstructor
@@ -25,12 +37,38 @@ public class MemberController {
     private final MemberService memberService;
     private final JwtTokenProvider jwtTokenProvider;
 
-    // 회원가입
+    @Operation(
+            summary = "회원가입",
+            description = """
+                    신규 회원을 등록하고 자동 로그인합니다.
+                    성공 시 `accessToken`·`refreshToken` 쿠키를 Set-Cookie 헤더로 발급합니다.
+
+                    **비밀번호 조건**: 영문 + 숫자 포함 8자 이상
+                    """
+    )
+    @RequestBody(
+            description = "회원가입 요청 정보",
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "회원가입 예시",
+                            value = """
+                                    {
+                                      "nickname": "야구팬123",
+                                      "email": "fan@dugout.cloud",
+                                      "password": "Pass1234",
+                                      "favoriteTeamName": "KIA 타이거즈"
+                                    }
+                                    """
+                    )
+            )
+    )
+    @ApiResponse(responseCode = "200", description = "회원가입 성공, 쿠키 발급")
+    @ApiResponse(responseCode = "400", description = "유효성 검증 실패 (비밀번호 형식 오류 등)")
     @PostMapping("/signup")
-    public ResponseEntity<LoginResponseDto> signup(@Valid @RequestBody SignupRequestDto requestDto) {
+    public ResponseEntity<LoginResponseDto> signup(@Valid @org.springframework.web.bind.annotation.RequestBody SignupRequestDto requestDto) {
         LoginResponseDto responseDto = memberService.signup(requestDto);
 
-        // 가입 직후 자동 로그인을 위한 쿠키 생성
         ResponseCookie accessCookie = jwtTokenProvider.createAccessTokenCookie(requestDto.getEmail());
         ResponseCookie refreshCookie = jwtTokenProvider.createRefreshTokenCookie(requestDto.getEmail());
 
@@ -40,22 +78,50 @@ public class MemberController {
                 .body(responseDto);
     }
 
-    // 닉네임 중복 확인
+    @Operation(
+            summary = "닉네임 중복 확인",
+            description = "회원가입 전 닉네임 사용 가능 여부를 확인합니다."
+    )
+    @ApiResponse(responseCode = "200", description = "닉네임 확인 결과 반환")
     @GetMapping("/check-id")
-    public ResponseEntity<NicknameCheckResponseDto> checkNickname(@RequestParam String nickname) {
+    public ResponseEntity<NicknameCheckResponseDto> checkNickname(
+            @Parameter(description = "확인할 닉네임", example = "야구팬123", required = true)
+            @RequestParam String nickname) {
         return ResponseEntity.ok(memberService.checkNicknameAvailability(nickname));
     }
 
+    @Operation(
+            summary = "로그인",
+            description = """
+                    이메일/비밀번호로 로그인합니다.
+                    성공 시 `accessToken`·`refreshToken` 쿠키를 발급하며, 응답 바디에 토큰은 포함되지 않습니다.
+                    """
+    )
+    @RequestBody(
+            description = "로그인 요청 정보",
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "로그인 예시",
+                            value = """
+                                    {
+                                      "email": "fan@dugout.cloud",
+                                      "password": "Pass1234"
+                                    }
+                                    """
+                    )
+            )
+    )
+    @ApiResponse(responseCode = "200", description = "로그인 성공, 쿠키 발급")
+    @ApiResponse(responseCode = "401", description = "아이디 또는 비밀번호 불일치")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDto loginDto) {
+    public ResponseEntity<?> login(@org.springframework.web.bind.annotation.RequestBody LoginRequestDto loginDto) {
         LoginResponseDto responseDto = memberService.getLoginUserInfo(loginDto);
 
         if (responseDto != null) {
             ResponseCookie accessCookie = jwtTokenProvider.createAccessTokenCookie(loginDto.getEmail());
             ResponseCookie refreshCookie = jwtTokenProvider.createRefreshTokenCookie(loginDto.getEmail());
 
-            // [중요] 토큰을 제외한 유저 정보만 담은 응답 객체를 새로 만들거나,
-            // 기존 DTO에서 토큰 필드만 null로 밀어버립니다.
             responseDto.setAccessToken(null);
             responseDto.setRefreshToken(null);
 
@@ -64,19 +130,23 @@ public class MemberController {
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                     .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                    .body(responseDto); // 이제 바디에는 닉네임, 팀 정보만 남음!
+                    .body(responseDto);
         }
         return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
     }
 
-    //로그아웃
+    @Operation(
+            summary = "로그아웃",
+            description = "현재 세션을 종료하고 쿠키를 만료시킵니다. 로그인 상태에서만 호출 가능합니다."
+    )
+    @ApiResponse(responseCode = "200", description = "로그아웃 성공")
+    @ApiResponse(responseCode = "401", description = "인증 필요")
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(Principal principal) {
+    public ResponseEntity<String> logout(@Parameter(hidden = true) Principal principal) {
         if (principal != null) {
             memberService.logout(principal.getName());
         }
 
-        // [개선] 빈 쿠키를 생성하여 브라우저의 쿠키 삭제 유도
         ResponseCookie emptyAccess = jwtTokenProvider.createEmptyCookie("accessToken");
         ResponseCookie emptyRefresh = jwtTokenProvider.createEmptyCookie("refreshToken");
 
@@ -86,35 +156,45 @@ public class MemberController {
                 .body("로그아웃이 완료되었습니다.");
     }
 
-    // 회원 탈퇴
+    @Operation(
+            summary = "회원 탈퇴",
+            description = "현재 로그인한 사용자 계정을 삭제하고 쿠키를 만료시킵니다."
+    )
+    @ApiResponse(responseCode = "200", description = "회원 탈퇴 성공")
+    @ApiResponse(responseCode = "401", description = "인증 필요")
     @DeleteMapping("/me")
-    public ResponseEntity<String> withdraw(Principal principal) {
+    public ResponseEntity<String> withdraw(@Parameter(hidden = true) Principal principal) {
         log.info(">>>> [Controller] 유저 {}의 회원탈퇴 요청", principal.getName());
         memberService.withdraw(principal.getName());
 
-        // 탈퇴 시에도 쿠키 삭제
         ResponseCookie emptyAccess = jwtTokenProvider.createEmptyCookie("accessToken");
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, emptyAccess.toString())
                 .body("회원탈퇴가 처리되었습니다. 이용해주셔서 감사합니다.");
     }
-    // 내 정보 조회(새로고침 시 로그인 유지용)
+
+    @Operation(
+            summary = "내 정보 조회",
+            description = "쿠키 기반으로 현재 로그인한 사용자의 닉네임·응원팀 정보를 반환합니다. 페이지 새로고침 시 로그인 상태 유지에 사용됩니다."
+    )
+    @ApiResponse(responseCode = "200", description = "사용자 정보 반환 성공")
+    @ApiResponse(responseCode = "401", description = "로그인되지 않은 사용자")
     @GetMapping("/me")
-    public ResponseEntity<?> getMyInfo(Principal principal) {
+    public ResponseEntity<?> getMyInfo(@Parameter(hidden = true) Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(401).body("로그인되지 않은 사용자입니다.");
         }
 
-        // principal.getName()에는 우리가 토큰에 넣었던 email(또는 loginId)이 들어있습니다.
-        // 서비스를 통해 DB에서 해당 유저의 최신 정보를 가져옵니다.
         LoginResponseDto userInfo = memberService.getMemberInfo(principal.getName());
-
         return ResponseEntity.ok(userInfo);
     }
 
-
-    // 관리자 용
+    @Operation(
+            summary = "금칙어 캐시 갱신",
+            description = "관리자 전용: 서버에 캐시된 금칙어 목록을 DB에서 다시 로드합니다."
+    )
+    @ApiResponse(responseCode = "200", description = "금칙어 캐시 갱신 성공")
     @GetMapping("/refresh-forbidden-words")
     public ResponseEntity<String> refreshWords() {
         memberService.refreshForbiddenWords();

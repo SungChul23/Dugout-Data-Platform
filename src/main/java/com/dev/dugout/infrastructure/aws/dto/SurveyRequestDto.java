@@ -1,23 +1,37 @@
 package com.dev.dugout.infrastructure.aws.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Schema(description = "팀 추천 설문 요청 DTO")
 @Getter
 @Setter
 public class SurveyRequestDto {
-    private int startYear; // 시작 연도
-    private Map<String, Integer> preferences; // q1:홈런, q2:타율, q3:방어율, q4:세이브/홀드, q5:OPS, q6:승률
 
-    //사용자의 점수(1~5)를 분석하여 Bedrock AI에게 전달할 성향 요약문을 생성합
+    @Schema(description = "야구 입문 연도 (Athena 파티션 프루닝에 사용)", example = "2018")
+    private int startYear;
+
+    @Schema(description = """
+            6가지 야구 취향 가중치 (각 1~5 정수)
+            - q1: 홈런(장타력)
+            - q2: 팀 타율(정교함)
+            - q3: 선발 방어율(투수력)
+            - q4: 불펜(세이브+홀드)
+            - q5: OPS(공격 효율)
+            - q6: 팀 승률(강팀)
+            """,
+            example = "{\"q1\":5,\"q2\":2,\"q3\":3,\"q4\":3,\"q5\":4,\"q6\":5}")
+    private Map<String, Integer> preferences;
+
     public String getPreferenceSummary() {
         if (preferences == null || preferences.isEmpty()) {
             return "전반적으로 균형 잡힌 팀을 선호합니다.";
         }
 
-        // 각 문항이 무엇을 의미하는지 매핑
         Map<String, String> traitLabels = Map.of(
                 "q1", "호쾌한 홈런과 장타력",
                 "q2", "정교하고 높은 팀 타율",
@@ -27,7 +41,6 @@ public class SurveyRequestDto {
                 "q6", "패배보다 승리가 익숙한 높은 승률"
         );
 
-        // 4점 이상 준 항목만 추출해서 "강조" 문장 생성
         String highPrefs = preferences.entrySet().stream()
                 .filter(entry -> entry.getValue() >= 4)
                 .map(entry -> traitLabels.getOrDefault(entry.getKey(), ""))

@@ -49,6 +49,8 @@ public class SecurityConfig {
                         // 1. 공통/예외 요청
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Swagger UI (운영 환경에서는 application-prod.properties로 비활성화)
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/api-docs").permitAll()
 
                         // 2. [Members] 누구나 접근 가능한 문 (로그인, 회원가입 등)
                         .requestMatchers("/api/v1/members/login", "/api/v1/members/signup", "/api/v1/members/check-id").permitAll()

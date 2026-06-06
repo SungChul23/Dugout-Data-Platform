@@ -1,21 +1,26 @@
 package com.dev.dugout.domain.player.dto;
 
-//JSON 필드 이름과 자바 필드 이름을 매핑해주는 어노테이션
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
+@Schema(description = "구단별 선수 명단 응답 DTO")
 @Getter
 @Builder
-// "선수 미래성적 예측 전용 응답 DTO"
 public class PlayerResponseDto {
-    private Long playerId; //여기서 사용하는 playerId는 kbo_pcode
+
+    @Schema(description = "선수 고유 ID (KBO 선수 코드)", example = "79047")
+    private Long playerId;
+
+    @Schema(description = "선수명", example = "김도영")
     private String name;
 
-    @JsonProperty("back_number") // 프론트엔드 ServerPlayerDto 인터페이스 일치
+    @Schema(description = "등번호", example = "7")
+    @JsonProperty("back_number")
     private Integer backNumber;
 
-    @JsonProperty("position_type") // 프론트엔드 ServerPlayerDto 인터페이스 일치
+    @Schema(description = "포지션 타입 (hitter: 타자 / pitcher: 투수)", example = "hitter")
+    @JsonProperty("position_type")
     private String positionType;
 }

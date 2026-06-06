@@ -1,14 +1,20 @@
 package com.dev.dugout.domain.chat.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// 프론트 → 서버 로 오는 데이터 구조
+@Schema(description = "챗봇 질문 요청 DTO")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRequestDto {
-    private String message; // 자연어
-    private String conversationId; // 사용자가 uuid (대화 기록용)
+
+    @Schema(description = "사용자 자연어 질문", example = "현재 타율 상위 3명 보여줘")
+    private String message;
+
+    @Schema(description = "대화 세션 식별자 (UUID). 동일 ID로 연속 요청 시 대화 맥락이 유지됩니다 (30분 TTL).",
+            example = "user-uuid-1234-abcd")
+    private String conversationId;
 }

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew clean *)",
+      "Read(//usr/lib/**)",
+      "Read(//opt/**)"
+    ]
+  }
+}
