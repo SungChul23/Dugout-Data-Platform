@@ -5,6 +5,7 @@ import com.dev.dugout.domain.player.dto.PredictionResponseDto;
 import com.dev.dugout.domain.player.service.PredictionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,9 +20,9 @@ import java.util.List;
 
 @Tag(name = "Player", description = "선수 관련 API — 성적 예측, FA 시장, 골든글러브, 리더보드")
 @ApiResponses({
-        @ApiResponse(responseCode = "400", description = "잘못된 요청 파라미터"),
-        @ApiResponse(responseCode = "404", description = "선수 또는 예측 데이터 없음"),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 파라미터", content = @Content),
+        @ApiResponse(responseCode = "404", description = "선수 또는 예측 데이터 없음", content = @Content),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @RestController
 @RequestMapping("/api/v1")

@@ -3,6 +3,7 @@ package com.dev.dugout.domain.team.controller;
 import com.dev.dugout.domain.team.dto.TeamTicketResponseDto;
 import com.dev.dugout.domain.team.service.TeamTicketService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,7 +17,7 @@ import java.util.List;
 
 @Tag(name = "Team", description = "팀·경기·뉴스·티켓 관련 API")
 @ApiResponses({
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @RestController
 @RequestMapping("/api/v1/tickets")

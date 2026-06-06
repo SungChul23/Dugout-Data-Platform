@@ -4,6 +4,7 @@ import com.dev.dugout.domain.team.dto.NewsResponseDto;
 import com.dev.dugout.domain.team.service.NewsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Team", description = "팀·경기·뉴스·티켓 관련 API")
 @ApiResponses({
-        @ApiResponse(responseCode = "400", description = "잘못된 팀명 파라미터"),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류 또는 Naver API 오류")
+        @ApiResponse(responseCode = "400", description = "잘못된 팀명 파라미터", content = @Content),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류 또는 Naver API 오류", content = @Content)
 })
 @RestController
 @RequiredArgsConstructor

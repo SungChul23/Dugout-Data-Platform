@@ -3,6 +3,7 @@ package com.dev.dugout.domain.player.controller;
 import com.dev.dugout.domain.player.dto.GoldenGloveResponseDto;
 import com.dev.dugout.domain.player.service.GoldenGloveService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Player", description = "선수 관련 API — 성적 예측, FA 시장, 골든글러브, 리더보드")
 @ApiResponses({
-        @ApiResponse(responseCode = "404", description = "골든글러브 예측 데이터 없음"),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "404", description = "골든글러브 예측 데이터 없음", content = @Content),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @Slf4j
 @RestController

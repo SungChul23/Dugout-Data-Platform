@@ -26,7 +26,7 @@ import java.security.Principal;
 
 @Tag(name = "User", description = "회원 인증 및 개인화 대시보드 API")
 @ApiResponses({
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @RestController
 @RequestMapping("/api/v1/members")
@@ -64,7 +64,7 @@ public class MemberController {
             )
     )
     @ApiResponse(responseCode = "200", description = "회원가입 성공, 쿠키 발급")
-    @ApiResponse(responseCode = "400", description = "유효성 검증 실패 (비밀번호 형식 오류 등)")
+    @ApiResponse(responseCode = "400", description = "유효성 검증 실패 (비밀번호 형식 오류 등)", content = @Content)
     @PostMapping("/signup")
     public ResponseEntity<LoginResponseDto> signup(@Valid @org.springframework.web.bind.annotation.RequestBody SignupRequestDto requestDto) {
         LoginResponseDto responseDto = memberService.signup(requestDto);
@@ -113,7 +113,7 @@ public class MemberController {
             )
     )
     @ApiResponse(responseCode = "200", description = "로그인 성공, 쿠키 발급")
-    @ApiResponse(responseCode = "401", description = "아이디 또는 비밀번호 불일치")
+    @ApiResponse(responseCode = "401", description = "아이디 또는 비밀번호 불일치", content = @Content)
     @PostMapping("/login")
     public ResponseEntity<?> login(@org.springframework.web.bind.annotation.RequestBody LoginRequestDto loginDto) {
         LoginResponseDto responseDto = memberService.getLoginUserInfo(loginDto);
@@ -140,7 +140,7 @@ public class MemberController {
             description = "현재 세션을 종료하고 쿠키를 만료시킵니다. 로그인 상태에서만 호출 가능합니다."
     )
     @ApiResponse(responseCode = "200", description = "로그아웃 성공")
-    @ApiResponse(responseCode = "401", description = "인증 필요")
+    @ApiResponse(responseCode = "401", description = "인증 필요", content = @Content)
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@Parameter(hidden = true) Principal principal) {
         if (principal != null) {
@@ -161,7 +161,7 @@ public class MemberController {
             description = "현재 로그인한 사용자 계정을 삭제하고 쿠키를 만료시킵니다."
     )
     @ApiResponse(responseCode = "200", description = "회원 탈퇴 성공")
-    @ApiResponse(responseCode = "401", description = "인증 필요")
+    @ApiResponse(responseCode = "401", description = "인증 필요", content = @Content)
     @DeleteMapping("/me")
     public ResponseEntity<String> withdraw(@Parameter(hidden = true) Principal principal) {
         log.info(">>>> [Controller] 유저 {}의 회원탈퇴 요청", principal.getName());
@@ -179,7 +179,7 @@ public class MemberController {
             description = "쿠키 기반으로 현재 로그인한 사용자의 닉네임·응원팀 정보를 반환합니다. 페이지 새로고침 시 로그인 상태 유지에 사용됩니다."
     )
     @ApiResponse(responseCode = "200", description = "사용자 정보 반환 성공")
-    @ApiResponse(responseCode = "401", description = "로그인되지 않은 사용자")
+    @ApiResponse(responseCode = "401", description = "로그인되지 않은 사용자", content = @Content)
     @GetMapping("/me")
     public ResponseEntity<?> getMyInfo(@Parameter(hidden = true) Principal principal) {
         if (principal == null) {

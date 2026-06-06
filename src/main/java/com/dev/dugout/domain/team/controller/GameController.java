@@ -4,6 +4,7 @@ import com.dev.dugout.domain.team.dto.GameResponseDto;
 import com.dev.dugout.domain.team.service.GameService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,8 +19,8 @@ import java.util.List;
 
 @Tag(name = "Team", description = "팀·경기·뉴스·티켓 관련 API")
 @ApiResponses({
-        @ApiResponse(responseCode = "400", description = "잘못된 연도 또는 월 파라미터"),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "400", description = "잘못된 연도 또는 월 파라미터", content = @Content),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @RestController
 @RequestMapping("/api/v1/schedule")

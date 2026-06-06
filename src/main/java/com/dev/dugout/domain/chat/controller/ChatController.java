@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Chat", description = "더그아웃 AI 챗봇 API — 자연어 질문 → SQL 생성 → RDS 조회 → 자연어 답변")
 @ApiResponses({
-        @ApiResponse(responseCode = "400", description = "질문 내용이 비어 있음"),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "400", description = "질문 내용이 비어 있음", content = @Content),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @Slf4j
 @RestController

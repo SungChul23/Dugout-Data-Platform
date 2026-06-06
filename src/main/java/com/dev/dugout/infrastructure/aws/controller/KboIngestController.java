@@ -23,8 +23,8 @@ import java.util.concurrent.CompletableFuture;
 @Tag(name = "AWS", description = "AWS Lambda → Spring 데이터 입고 API (내부 전용) — Bearer 시크릿 키 인증 필요")
 @SecurityRequirement(name = "LambdaSecret")
 @ApiResponses({
-        @ApiResponse(responseCode = "401", description = "Lambda 시크릿 키 불일치"),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "401", description = "Lambda 시크릿 키 불일치", content = @Content),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @RestController
 @RequestMapping("/api/v1/ingest")

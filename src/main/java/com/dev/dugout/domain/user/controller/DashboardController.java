@@ -7,6 +7,7 @@ import com.dev.dugout.domain.user.service.DashboardService;
 import com.dev.dugout.global.config.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -19,8 +20,8 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "User", description = "회원 인증 및 개인화 대시보드 API")
 @SecurityRequirement(name = "CookieAuth")
 @ApiResponses({
-        @ApiResponse(responseCode = "401", description = "인증 필요 (로그인 후 이용)"),
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+        @ApiResponse(responseCode = "401", description = "인증 필요 (로그인 후 이용)", content = @Content),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류", content = @Content)
 })
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -47,7 +48,7 @@ public class DashboardController {
             description = "대시보드에 표시할 응원 선수를 추가합니다. 슬롯은 최대 3개이며, 초과 시 400을 반환합니다."
     )
     @ApiResponse(responseCode = "200", description = "선수 추가 성공")
-    @ApiResponse(responseCode = "400", description = "슬롯이 가득 찼거나 이미 등록된 선수")
+    @ApiResponse(responseCode = "400", description = "슬롯이 가득 찼거나 이미 등록된 선수", content = @Content)
     @PostMapping("/player")
     public ResponseEntity<?> addPlayer(
             @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal userPrincipal,

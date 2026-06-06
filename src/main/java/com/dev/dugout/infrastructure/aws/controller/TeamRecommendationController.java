@@ -20,7 +20,7 @@ import java.util.List;
 
 @Tag(name = "AWS", description = "AWS Lambda → Spring 데이터 입고 API (내부 전용) — Bearer 시크릿 키 인증 필요")
 @ApiResponses({
-        @ApiResponse(responseCode = "500", description = "서버 내부 오류 또는 Athena 쿼리 실패")
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류 또는 Athena 쿼리 실패", content = @Content)
 })
 @Controller
 @RequestMapping("/api/v1/fanexperience")
