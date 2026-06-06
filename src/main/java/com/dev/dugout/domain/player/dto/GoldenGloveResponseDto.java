@@ -35,7 +35,7 @@ public class GoldenGloveResponseDto {
         @Schema(description = "소속 구단명", example = "KIA 타이거즈")
         private String teamName;
 
-        @Schema(description = "탭 분류용 포지션 (일반 포지션 또는 OF)", example = "SS")
+        @Schema(description = "탭 분류용 포지션 (일반 포지션 또는 OF)", example = "3B")
         private String position;
 
         @Schema(description = "외야수 세부 포지션 (UI 출력용, 외야수만 해당)", example = "중견수")

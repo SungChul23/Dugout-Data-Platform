@@ -9,7 +9,7 @@ import lombok.Getter;
 @Builder
 public class ChatResponseDto {
 
-    @Schema(description = "AI가 생성한 자연어 답변", example = "현재 타율 상위 3명은 김도영(.358), 이정후(.345), 나성범(.332)입니다.")
+    @Schema(description = "AI가 생성한 자연어 답변", example = "현재 타율 상위 3명은 최원준(.358), 박성한(.345), 오스틴(.332)입니다.")
     private String answer;
 
     @Schema(description = "대화 세션 식별자 (요청과 동일하게 에코)", example = "user-uuid-1234-abcd")

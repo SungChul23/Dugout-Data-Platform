@@ -39,7 +39,7 @@ public class GoldenGloveRequestDto {
         @JsonProperty("팀명")
         private String teamName;
 
-        @Schema(description = "포지션 코드 (영문)", example = "SS")
+        @Schema(description = "포지션 코드 (영문)", example = "3B")
         @JsonProperty("pos_eng")
         private String position;
 

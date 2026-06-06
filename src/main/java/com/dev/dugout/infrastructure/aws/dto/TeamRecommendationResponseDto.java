@@ -11,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 public class TeamRecommendationResponseDto {
 
-    @Schema(description = "추천 근거가 된 대표 연도", example = "2023")
+    @Schema(description = "추천 근거가 된 대표 연도", example = "2024")
     private String year;
 
     @Schema(description = "구단 풀네임", example = "KIA 타이거즈")

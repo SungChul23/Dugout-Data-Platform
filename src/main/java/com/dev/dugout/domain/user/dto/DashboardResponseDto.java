@@ -17,7 +17,7 @@ public class DashboardResponseDto {
     @Schema(description = "사용자 응원 구단명", example = "KIA 타이거즈")
     private String favoriteTeamName;
 
-    @Schema(description = "구단 슬로건", example = "I LOVE KIA TIGERS")
+    @Schema(description = "구단 슬로건", example = "압도하라! V13 ALWAYS KIA TIGERS")
     private String teamSlogan;
 
     @Schema(description = "구단 공식 티켓 예매 URL")

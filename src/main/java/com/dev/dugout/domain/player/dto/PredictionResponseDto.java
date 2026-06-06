@@ -16,10 +16,10 @@ public class PredictionResponseDto {
     @Schema(description = "선수명", example = "김도영")
     private String name;
 
-    @Schema(description = "등번호", example = "7")
+    @Schema(description = "등번호", example = "5")
     private Integer backNumber;
 
-    @Schema(description = "포지션", example = "SS")
+    @Schema(description = "포지션", example = "3B")
     private String position;
 
     // --- 타자 전용 ---

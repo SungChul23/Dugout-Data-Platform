@@ -15,7 +15,7 @@ public class FaListResponseDto {
     @Schema(description = "선수명", example = "김도영")
     private String playerName;
 
-    @Schema(description = "주 포지션 코드", example = "SS")
+    @Schema(description = "주 포지션 코드", example = "3B")
     private String subPositionType;
 
     @Schema(description = "선수 나이", example = "24")

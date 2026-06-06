@@ -16,7 +16,7 @@ public class PlayerResponseDto {
     @Schema(description = "선수명", example = "김도영")
     private String name;
 
-    @Schema(description = "등번호", example = "7")
+    @Schema(description = "등번호", example = "5")
     @JsonProperty("back_number")
     private Integer backNumber;
 
