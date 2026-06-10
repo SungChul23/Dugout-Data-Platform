@@ -53,9 +53,15 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             fuser -k 8080/tcp || true
+            sleep 2
             rm -f /home/ubuntu/dugout/*.jar
             cp /home/ubuntu/dugout/tars/*.jar /home/ubuntu/dugout/app.jar
-            nohup /usr/bin/java -jar /home/ubuntu/dugout/app.jar \
+            nohup /usr/bin/java \
+              -Xms128m \
+              -Xmx400m \
+              -XX:MaxMetaspaceSize=128m \
+              -XX:+UseG1GC \
+              -jar /home/ubuntu/dugout/app.jar \
               --spring.datasource.url=${{ secrets.DB_URL }} \
               --spring.datasource.username=${{ secrets.DB_USERNAME }} \
               --spring.datasource.password=${{ secrets.DB_PASSWORD }} \

@@ -11,6 +11,7 @@ import com.dev.dugout.infrastructure.aws.batch.KboDataCategory;
 import com.dev.dugout.infrastructure.aws.batch.KboIngestStrategy;
 import com.dev.dugout.global.common.S3JsonReader;
 import com.dev.dugout.infrastructure.aws.service.PlayerSyncService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class HitterIngestStrategy implements KboIngestStrategy {
     private final TeamRepository teamRepository;
     private final S3JsonReader s3JsonReader;
     private final PlayerSyncService playerSyncService;
+    private final EntityManager entityManager;
 
 
     @Override
@@ -96,9 +98,23 @@ public class HitterIngestStrategy implements KboIngestStrategy {
         }
 
         // 필터링된 엔티티들만 벌크 저장
+//        if (!entitiesToSave.isEmpty()) {
+//            hitterRepository.saveAll(entitiesToSave);
+//        }
+
         if (!entitiesToSave.isEmpty()) {
-            hitterRepository.saveAll(entitiesToSave);
+            int batchSize = 50;
+            for (int i = 0; i < entitiesToSave.size(); i += batchSize) {
+                List<DailyPlayerHitter> batch = entitiesToSave.subList(
+                        i, Math.min(i + batchSize, entitiesToSave.size())
+                );
+                hitterRepository.saveAll(batch);
+                entityManager.flush();  // DB에 쿼리 날림
+                entityManager.clear();  // 영속성 컨텍스트 비움
+            }
         }
+
+
 
         //  [최종 누락 리포트 출력]
         printHitterMissingReport(totalCount, entitiesToSave.size(), missingPcodes);
