@@ -80,7 +80,7 @@ public class SecurityConfig {
                                 "/api/v1/ingest/ml/gg", // 골든글러브 예측 데이터 관련
                                 "/api/v1/performance/**",// 팀별 순위 관련
                                 "/api/v1/leaderboard/**",// 지표별 top 5 리더보드 관련
-                                "/api/v1/api/v1/gg/**", // 골든글러브 예측 관련
+                                "/api/v1/gg/**", // 골든글러브 예측 관련
                                 "/api/v1/chat" // 더그아웃 AI 챗봇 관련
                         ).permitAll()
 
