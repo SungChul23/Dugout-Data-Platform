@@ -2,70 +2,62 @@ package com.dev.dugout.domain.player.service;
 
 
 import com.dev.dugout.domain.player.entity.FaMarket;
+import com.dev.dugout.global.common.S3CacheManager;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockClientFacade;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockErrorStrategy;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockMessage;
 import com.dev.dugout.infrastructure.aws.s3.S3Service;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class FaMarketBedrockService {
     private final S3Service s3Service;
-    private final BedrockRuntimeClient bedrockClient;
+    private final BedrockClientFacade bedrockClientFacade;
+    private final S3CacheManager s3CacheManager;
 
-
-    // FA 전용 마스터 데이터 캐시 (pcode 기준)
-    private final Map<String, String> faMasterDataMap = new HashMap<>();
+    private static final String MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
+    private static final String CALLER_NAME = "FaMarketBedrockService";
+    private static final String FALLBACK_MESSAGE = "현재 해당 선수의 FA 시장 가치를 분석 중입니다. 잠시 후 확인해 주세요.";
+    private static final String CACHE_KEY = "fa-master";
 
     @PostConstruct
     public void init() {
         log.info("====> [FA 초기화] S3 FA 마스터 데이터를 메모리에 로드합니다.");
-        // 성철님이 S3Service에 새로 만든 FA 전용 메서드 호출
-        loadFaMasterData(s3Service.fetchFaBatterMasterJson(), "FA 타자");
-        loadFaMasterData(s3Service.fetchFaPitcherMasterJson(), "FA 투수");
-    }
-
-    private void loadFaMasterData(String jsonContent, String type) {
-        if (jsonContent != null) {
-            try {
-                JSONArray jsonArray = new JSONArray(jsonContent);
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject obj = jsonArray.getJSONObject(i);
-                    // JSON에서 "pcode"라는 키를 찾아 추출 -> 곧 선수 추출
-                    String pcode = String.valueOf(obj.get("pcode"));
-                    // 이 pcode를 Key로, 해당 선수의 전체 정보(JSON String)를 Value로 메모리(Map)에 저장
-                    faMasterDataMap.put(pcode, obj.toString());
-                }
-                log.info("====> [FA 성공] {} 명의 {} 데이터를 캐싱했습니다.", jsonArray.length(), type);
-            } catch (Exception e) {
-                log.error("#### [FA 초기화 실패] {} JSON 파싱 오류: {}", type, e.getMessage());
-            }
-        }
+        s3CacheManager.load(CACHE_KEY, s3Service.fetchFaBatterMasterJson(),
+                obj -> String.valueOf(obj.get("pcode")), "FA 타자");
+        s3CacheManager.load(CACHE_KEY, s3Service.fetchFaPitcherMasterJson(),
+                obj -> String.valueOf(obj.get("pcode")), "FA 투수");
     }
 
     public String generateFaReport(FaMarket player) {
         String pcode = player.getPcode();
         log.info("====> [Bedrock 요청] {} 선수(pcode: {})의 리포트 생성을 시작합니다.", player.getPlayerName(), pcode);
 
-        String masterContext = faMasterDataMap.getOrDefault(pcode, "유사 과거 사례 정보 없음");
+        String masterContext = s3CacheManager.getOrDefault(CACHE_KEY, pcode, "유사 과거 사례 정보 없음");
         if (masterContext.equals("유사 과거 사례 정보 없음")) {
             log.warn("====> [Bedrock 알림] {} 선수의 과거 유사 사례를 찾을 수 없어 기본 정보로 분석합니다.", player.getPlayerName());
         }
 
         String prompt = constructFaPrompt(player, masterContext);
-        return invokeBedrock(prompt, player.getPlayerName());
+
+        return bedrockClientFacade.invoke(
+                MODEL_ID, 1000, 0.7,
+                null,
+                List.of(BedrockMessage.user(prompt)),
+                BedrockErrorStrategy.RETURN_FALLBACK,
+                FALLBACK_MESSAGE,
+                CALLER_NAME
+        );
     }
+
     private String constructFaPrompt(FaMarket player, String masterContext) {
         boolean isPitcher = "투수".equals(player.getPositionType());
         String playerName = player.getPlayerName();
@@ -93,34 +85,5 @@ public class FaMarketBedrockService {
                 player.getAge(), player.getGrade(), player.getSubPositionType(),
                 player.getGrade()
         );
-    }
-
-    private String invokeBedrock(String prompt,String playerName) {
-        JSONObject payload = new JSONObject();
-        payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 1000);
-        payload.put("temperature", 0.7);
-
-        JSONArray messages = new JSONArray();
-        messages.put(new JSONObject().put("role", "user").put("content", prompt));
-        payload.put("messages", messages);
-
-        try {
-            InvokeModelRequest request = InvokeModelRequest.builder()
-                    .modelId("anthropic.claude-3-haiku-20240307-v1:0")
-                    .contentType("application/json")
-                    .body(SdkBytes.fromUtf8String(payload.toString()))
-                    .build();
-
-            InvokeModelResponse response = bedrockClient.invokeModel(request);
-            JSONObject resp = new JSONObject(response.body().asUtf8String());
-            String result = resp.getJSONArray("content").getJSONObject(0).getString("text");
-
-            log.info("====> [AWS SDK] Bedrock 리포트 생성 완료 (대상: {})", playerName);
-            return result;
-        } catch (Exception e) {
-            log.error("#### [BEDROCK ERROR] {} 선수 리포트 생성 실패: {}", playerName, e.getMessage());
-            return "현재 해당 선수의 FA 시장 가치를 분석 중입니다. 잠시 후 확인해 주세요.";
-        }
     }
 }

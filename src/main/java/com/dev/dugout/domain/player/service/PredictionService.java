@@ -71,21 +71,21 @@ public class PredictionService {
 
         if ("투수".equals(player.getPositionType())) {
             log.info("====> [투수 데이터 구성] 선수: {}", player.getName());
-            // 투수는 현재 성적(ERA, WHIP)과 엘리트 확률 정보를 전달
-            builder.probElite(pred.getProbElite())
+            builder.pitcherStats(PredictionResponseDto.PitcherStats.builder()
+                    .probElite(pred.getProbElite())
                     .rolePercentileTop(pred.getRolePercentileTop())
                     .roleRank(pred.getRoleRank())
                     .roleTotal(pred.getRoleTotal())
-                    //[투수] 2025년도 성적 추가
                     .era2025(pred.getEra2025())
                     .fip2025(pred.getFip2025())
                     .ip2025(pred.getIp2025())
                     .whip2025(pred.getWhip2025())
-                    .role(pred.getRole());
+                    .role(pred.getRole())
+                    .build());
         } else {
             log.info("====> [타자 데이터 구성] 선수: {}", player.getName());
-            // 타자: 모든 상세 지표 매핑
-            builder.currAvg(pred.getCurrAvg()).predAvg(pred.getPredAvg()).avgDiff(pred.getAvgDiff())
+            builder.hitterStats(PredictionResponseDto.HitterStats.builder()
+                    .currAvg(pred.getCurrAvg()).predAvg(pred.getPredAvg()).avgDiff(pred.getAvgDiff())
                     .avgMin(pred.getAvgMin()).avgMax(pred.getAvgMax())
                     .currObp(pred.getCurrObp()).predObp(pred.getPredObp()).diffObp(pred.getDiffObp())
                     .obpMin(pred.getObpMin()).obpMax(pred.getObpMax())
@@ -94,7 +94,8 @@ public class PredictionService {
                     .currOps(pred.getCurrOps()).predOps(pred.getPredOps()).opsDiff(pred.getOpsDiff())
                     .opsMin(pred.getOpsMin()).opsMax(pred.getOpsMax())
                     .currHr(pred.getCurrHr()).predHr(pred.getPredHr()).hrDiff(pred.getHrDiff())
-                    .hrMin(pred.getHrMin()).hrMax(pred.getHrMax());
+                    .hrMin(pred.getHrMin()).hrMax(pred.getHrMax())
+                    .build());
         }
         return builder.build();
     }

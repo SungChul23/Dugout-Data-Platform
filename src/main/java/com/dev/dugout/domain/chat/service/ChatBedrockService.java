@@ -1,14 +1,11 @@
 package com.dev.dugout.domain.chat.service;
 
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockClientFacade;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockErrorStrategy;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -18,10 +15,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatBedrockService {
 
-    private final BedrockRuntimeClient bedrockClient;
+    private final BedrockClientFacade bedrockClientFacade;
     private final PromptLoader promptLoader;
 
     private static final String MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
+    private static final String CALLER_NAME = "ChatBedrockService";
 
     /**
      * 1차 Bedrock 호출 - SQL 생성
@@ -41,7 +39,14 @@ public class ChatBedrockService {
                 question
         );
 
-        return invoke(prompt, 500, 0.0);
+        return bedrockClientFacade.invoke(
+                MODEL_ID, 500, 0.0,
+                null,
+                List.of(BedrockMessage.user(prompt)),
+                BedrockErrorStrategy.THROW_EXCEPTION,
+                null,
+                CALLER_NAME
+        ).trim();
     }
 
     /**
@@ -63,7 +68,14 @@ public class ChatBedrockService {
                 resultStr
         );
 
-        return invoke(prompt, 600, 0.7);
+        return bedrockClientFacade.invoke(
+                MODEL_ID, 600, 0.7,
+                null,
+                List.of(BedrockMessage.user(prompt)),
+                BedrockErrorStrategy.THROW_EXCEPTION,
+                null,
+                CALLER_NAME
+        ).trim();
     }
 
     /**
@@ -83,37 +95,5 @@ public class ChatBedrockService {
             }
         }
         return true;
-    }
-
-    private String invoke(String prompt, int maxTokens, double temperature) {
-        try {
-            JSONObject payload = new JSONObject();
-            payload.put("anthropic_version", "bedrock-2023-05-31");
-            payload.put("max_tokens", maxTokens);
-            payload.put("temperature", temperature);
-
-            JSONArray messages = new JSONArray();
-            messages.put(new JSONObject()
-                    .put("role", "user")
-                    .put("content", prompt));
-            payload.put("messages", messages);
-
-            InvokeModelRequest request = InvokeModelRequest.builder()
-                    .modelId(MODEL_ID)
-                    .contentType("application/json")
-                    .body(SdkBytes.fromUtf8String(payload.toString()))
-                    .build();
-
-            InvokeModelResponse response = bedrockClient.invokeModel(request);
-            return new JSONObject(response.body().asUtf8String())
-                    .getJSONArray("content")
-                    .getJSONObject(0)
-                    .getString("text")
-                    .trim();
-
-        } catch (Exception e) {
-            log.error("[ChatBedrockService] Bedrock 호출 실패: {}", e.getMessage());
-            throw new RuntimeException("AI 응답 생성 중 오류가 발생했습니다.");
-        }
     }
 }

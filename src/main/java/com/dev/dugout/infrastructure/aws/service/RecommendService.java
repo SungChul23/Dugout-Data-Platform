@@ -1,5 +1,6 @@
 package com.dev.dugout.infrastructure.aws.service;
 
+import com.dev.dugout.domain.team.KboTeamRegistry;
 import com.dev.dugout.infrastructure.aws.dto.SurveyRequestDto;
 import com.dev.dugout.infrastructure.aws.dto.TeamRecommendationResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -25,15 +26,6 @@ public class RecommendService {
     private String database;
     @Value("${aws.athena.output-location}")
     private String outputLocation;
-
-    private static final Map<String, String> FULL_TEAM_NAMES = Map.ofEntries(
-            Map.entry("1", "삼성 라이온즈"), Map.entry("2", "두산 베어스"),
-            Map.entry("3", "LG 트윈스"), Map.entry("4", "롯데 자이언츠"),
-            Map.entry("5", "KIA 타이거즈"), Map.entry("6", "한화 이글스"),
-            Map.entry("7", "SSG 랜더스"), Map.entry("8", "키움 히어로즈"),
-            Map.entry("9", "NC 다이노스"), Map.entry("10", "kt wiz"),
-            Map.entry("11", "현대 유니콘스")
-    );
 
     public List<TeamRecommendationResponseDto> getMatchTeam(SurveyRequestDto request) {
         log.info(">>>> [ANALYSIS START] KBO 상위 3팀 추천 엔진 가동");
@@ -90,7 +82,8 @@ public class RecommendService {
 
                 String year = data.get(0).varCharValue();
                 String dbTeamName = data.get(1).varCharValue();
-                String fullTeamName = FULL_TEAM_NAMES.getOrDefault(dbTeamName, dbTeamName + " 구단");
+                String fullTeamName = KboTeamRegistry.findFullNameById(dbTeamName)
+                        .orElse(dbTeamName + " 구단");
                 double totalScore = Double.parseDouble(data.get(8).varCharValue());
 
                 // AI 분석을 위한 스탯 요약 (DTO에 statsSummary 필드가 있다고 가정)
@@ -122,25 +115,52 @@ public class RecommendService {
 
     private void waitForQuery(String id) {
         int attempts = 0;
+        int maxAttempts = 60;
+        long maxWaitMs = 30_000L; // 30초
+        long pollingIntervalMs = 500L;
+        long startTime = System.currentTimeMillis();
+
         while (true) {
-            GetQueryExecutionResponse res = athenaClient.getQueryExecution(GetQueryExecutionRequest.builder().queryExecutionId(id).build());
+            GetQueryExecutionResponse res = athenaClient.getQueryExecution(
+                    GetQueryExecutionRequest.builder().queryExecutionId(id).build());
             String state = res.queryExecution().status().state().toString();
 
             if (state.equals("SUCCEEDED")) {
-                log.info(">>>> [ATHENA SUCCESS] 쿼리 완료 ({}회 폴링)", attempts);
+                long elapsed = System.currentTimeMillis() - startTime;
+                log.info(">>>> [ATHENA SUCCESS] 쿼리 완료 ({}회 폴링, {}ms 소요)", attempts, elapsed);
                 return;
             }
             if (state.equals("FAILED") || state.equals("CANCELLED")) {
                 String reason = res.queryExecution().status().stateChangeReason();
-                log.error(">>>> [ATHENA ERROR] 쿼리 실패 (ID: {}), 사유: {}", id, reason);
+                long elapsed = System.currentTimeMillis() - startTime;
+                log.error(">>>> [ATHENA ERROR] 쿼리 실패 (ID: {}, {}회 폴링, {}ms) 사유: {}",
+                        id, attempts, elapsed, reason);
                 throw new RuntimeException("Athena 실패: " + reason);
             }
 
+            attempts++;
+
+            // 타임아웃 체크: 최대 폴링 횟수 초과 또는 최대 대기 시간 초과
+            long elapsed = System.currentTimeMillis() - startTime;
+            if (attempts >= maxAttempts || elapsed >= maxWaitMs) {
+                log.error(">>>> [ATHENA TIMEOUT] 쿼리 타임아웃 (ID: {}, {}회 폴링, {}ms)", id, attempts, elapsed);
+                // 실행 중인 쿼리 취소 요청
+                try {
+                    athenaClient.stopQueryExecution(
+                            StopQueryExecutionRequest.builder().queryExecutionId(id).build());
+                    log.info(">>>> [ATHENA] 쿼리 취소 요청 완료 (ID: {})", id);
+                } catch (Exception cancelEx) {
+                    log.warn(">>>> [ATHENA] 쿼리 취소 요청 실패: {}", cancelEx.getMessage());
+                }
+                throw new RuntimeException(
+                        String.format("Athena 쿼리 타임아웃 (ID: %s, %d회 시도, %dms 경과)", id, attempts, elapsed));
+            }
+
             try {
-                attempts++;
-                Thread.sleep(500);
-            } catch (Exception ignored) {
+                Thread.sleep(pollingIntervalMs);
+            } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
+                throw new RuntimeException("Athena 쿼리 대기 중 인터럽트 발생", ie);
             }
         }
     }

@@ -1,5 +1,6 @@
-package com.dev.dugout.domain.chat.service;
+ㄴㅇpackage com.dev.dugout.domain.chat.service;
 
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockInvocationException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.PostConstruct;
@@ -104,7 +105,15 @@ public class ChatService {
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // 5단계: Bedrock 1차 호출 - SQL 생성
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        String rawSql = chatBedrockService.generateSql(schema, historyText, userMessage);
+        String rawSql;
+        try {
+            rawSql = chatBedrockService.generateSql(schema, historyText, userMessage);
+        } catch (BedrockInvocationException e) {
+            log.error("[ChatService] SQL 생성 Bedrock 호출 실패: {}", e.getMessage());
+            String errorAnswer = "AI 서비스가 일시적으로 응답하지 않습니다. 잠시 후 다시 질문해주세요.";
+            saveHistory(conversationId, history, userMessage, errorAnswer);
+            return errorAnswer;
+        }
 
         if ("NO_SQL".equals(rawSql.trim())) {
             log.info("[ChatService] 단순 일상 대화 감지 (NO_SQL 우회)");
@@ -149,7 +158,15 @@ public class ChatService {
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // 8단계: Bedrock 2차 호출 - 자연어 변환
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        String answer = chatBedrockService.generateAnswer(userMessage, dbResult);
+        String answer;
+        try {
+            answer = chatBedrockService.generateAnswer(userMessage, dbResult);
+        } catch (BedrockInvocationException e) {
+            log.error("[ChatService] 자연어 변환 Bedrock 호출 실패: {}", e.getMessage());
+            String errorAnswer = "데이터는 조회되었지만 답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+            saveHistory(conversationId, history, userMessage, errorAnswer);
+            return errorAnswer;
+        }
         log.info("[ChatService] 최종 답변 생성 완료");
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

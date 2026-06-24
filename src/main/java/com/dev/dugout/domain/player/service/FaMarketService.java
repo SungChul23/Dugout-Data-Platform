@@ -5,6 +5,7 @@ import com.dev.dugout.domain.player.dto.FaDetailResponseDto;
 import com.dev.dugout.domain.player.dto.FaListResponseDto;
 import com.dev.dugout.domain.player.entity.FaMarket;
 import com.dev.dugout.domain.player.repository.FaMarketRepository;
+import com.dev.dugout.domain.team.KboTeamRegistry;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,16 +81,8 @@ public class FaMarketService {
 
     //fa 페이지에서
     private Integer convertTeamNameToId(String name) {
-        if (name.contains("삼성")) return 1;
-        if (name.contains("두산")) return 2;
-        if (name.contains("LG")) return 3;
-        if (name.contains("롯데")) return 4;
-        if (name.contains("KIA")) return 5;
-        if (name.contains("한화")) return 6;
-        if (name.contains("SSG")) return 7;
-        if (name.contains("키움")) return 8;
-        if (name.contains("NC")) return 9;
-        if (name.contains("KT") || name.contains("kt")) return 10;
-        return 0;
+        return KboTeamRegistry.findIdByName(name)
+                .map(Long::intValue)
+                .orElse(0);
     }
 }

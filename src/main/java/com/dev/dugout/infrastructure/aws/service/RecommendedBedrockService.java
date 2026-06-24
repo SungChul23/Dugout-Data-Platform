@@ -1,16 +1,12 @@
 package com.dev.dugout.infrastructure.aws.service;
 
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockClientFacade;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockErrorStrategy;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockMessage;
 import com.dev.dugout.infrastructure.aws.dto.TeamRecommendationResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 import java.util.List;
 
@@ -19,10 +15,14 @@ import java.util.List;
 @Slf4j
 public class RecommendedBedrockService {
 
-    private final BedrockRuntimeClient bedrockRuntimeClient;
+    private final BedrockClientFacade bedrockClientFacade;
+
+    private static final String MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
+    private static final String CALLER_NAME = "RecommendedBedrockService";
+    private static final String FALLBACK_MESSAGE = "데이터 분석 중 오류가 발생했습니다. 하지만 추천된 팀들은 모두 KBO 역사에 남을 명팀들입니다. 상세 기록을 확인해 보시기 바랍니다.";
 
     public String generateBatchReason(List<TeamRecommendationResponseDto> teams, String userPreference) {
-        // 1. 3개 팀의 데이터를 문자열로 결합 (필수 변경 사항)
+        // 1. 3개 팀의 데이터를 문자열로 결합
         StringBuilder teamDataBuilder = new StringBuilder();
         for (int i = 0; i < teams.size(); i++) {
             TeamRecommendationResponseDto t = teams.get(i);
@@ -32,7 +32,7 @@ public class RecommendedBedrockService {
             ));
         }
 
-        // 2. 기존 프롬프트의 틀을 유지하며 데이터 부분만 교체
+        // 2. 프롬프트 구성
         String prompt = String.format(
                 "너는 야구 입문자에게 객관적인 지표를 분석하여 최적의 팀을 추천하는 전문적인 '더그아웃 스카우터'야.\n" +
                         "지금은 2026년이고, 너는 제공된 데이터를 분석하여 사용자에게 상위 3개 팀을 순위별로 추천하고 있어.\n\n" +
@@ -61,30 +61,16 @@ public class RecommendedBedrockService {
                 teamDataBuilder.toString(), userPreference
         );
 
-        JSONObject payload = new JSONObject();
-        payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 2500); // 3팀 분석을 위해 토큰 수 상향 (필수)
-        payload.put("temperature", 0.7);
+        // 3. BedrockClientFacade를 통한 통합 호출
+        String result = bedrockClientFacade.invoke(
+                MODEL_ID, 2500, 0.7,
+                null,
+                List.of(BedrockMessage.user(prompt)),
+                BedrockErrorStrategy.RETURN_FALLBACK,
+                FALLBACK_MESSAGE,
+                CALLER_NAME
+        );
 
-        JSONArray messages = new JSONArray();
-        messages.put(new JSONObject().put("role", "user").put("content", prompt));
-        payload.put("messages", messages);
-
-        try {
-            InvokeModelRequest request = InvokeModelRequest.builder()
-                    .modelId("anthropic.claude-3-haiku-20240307-v1:0")
-                    .contentType("application/json")
-                    .body(SdkBytes.fromUtf8String(payload.toString()))
-                    .build();
-
-            InvokeModelResponse response = bedrockRuntimeClient.invokeModel(request);
-            JSONObject resp = new JSONObject(response.body().asUtf8String());
-
-            return resp.getJSONArray("content").getJSONObject(0).getString("text").trim();
-
-        } catch (Exception e) {
-            log.error(">>>> [BEDROCK ERROR] : {}", e.getMessage());
-            return "데이터 분석 중 오류가 발생했습니다. 하지만 추천된 팀들은 모두 KBO 역사에 남을 명팀들입니다. 상세 기록을 확인해 보시기 바랍니다.";
-        }
+        return result != null ? result.trim() : FALLBACK_MESSAGE;
     }
 }

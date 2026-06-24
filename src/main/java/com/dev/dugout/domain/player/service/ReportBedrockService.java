@@ -2,6 +2,10 @@ package com.dev.dugout.domain.player.service;
 
 
 import com.dev.dugout.global.common.MetricTranslator;
+import com.dev.dugout.global.common.S3CacheManager;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockClientFacade;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockErrorStrategy;
+import com.dev.dugout.infrastructure.aws.bedrock.BedrockMessage;
 import com.dev.dugout.infrastructure.aws.s3.S3Service;
 import com.dev.dugout.infrastructure.ml.entity.PredictionResult;
 import jakarta.annotation.PostConstruct;
@@ -10,13 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
-import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -24,57 +23,44 @@ import java.util.Map;
 public class ReportBedrockService {
 
     private final S3Service s3Service;
-    private final BedrockRuntimeClient bedrockClient; // Config에서 등록한 Bean 주입
-    private final Map<String, String> playerMasterDataMap = new HashMap<>();
-
+    private final BedrockClientFacade bedrockClientFacade;
+    private final S3CacheManager s3CacheManager;
     private final MetricTranslator metricTranslator;
+
+    private static final String MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
+    private static final String CALLER_NAME = "ReportBedrockService";
+    private static final String FALLBACK_MESSAGE = "AI 리포트 생성 중 오류가 발생했습니다.";
+    private static final String CACHE_KEY = "report-master";
+
+    private static final String SYSTEM_PROMPT = "너는 KBO 데이터 전략가야. 아래 규칙을 어기면 리포트가 파괴되니 반드시 지켜:\n" +
+            "1. 모든 강조(`**`)는 단어에 '밀착'시킨다. (예: `**타율**` (O), `** 타율 **` (X))\n" +
+            "2. 문장 끝에 마침표(.)가 있다면 반드시 마침표 '뒤'가 아닌 '앞'에서 `**`를 닫는다. (예: `...합니다.**` (O))\n" +
+            "3. 지표 이름(AVG, HR 등)이 나오면 무조건 한글명을 포함해 `**지표명(한글명)**`으로 통일한다.\n" +
+            "4. 내용이 끝난 뒤 의미 없는 `**` 찌꺼기를 절대 남기지 마.";
 
     //서버 시작 시 S3 마스터 파일을 읽어 메모리에 캐싱
     @PostConstruct
     public void init() {
         log.info("====> [초기화] S3 마스터 데이터를 메모리에 로드합니다.(선수 성적 예측)");
-
-        // 1. 타자 데이터 로드
-        loadMasterData(s3Service.fetchMasterJson(), "타자");
-
-        // 2. 투수 데이터 로드
-        loadMasterData(s3Service.fetchPitcherMasterJson(), "투수");
+        s3CacheManager.load(CACHE_KEY, s3Service.fetchMasterJson(),
+                obj -> extractPcode(obj), "타자");
+        s3CacheManager.load(CACHE_KEY, s3Service.fetchPitcherMasterJson(),
+                obj -> extractPcode(obj), "투수");
     }
 
-    private void loadMasterData(String jsonContent, String type) {
-        if (jsonContent != null) {
-            try {
-                JSONArray jsonArray = new JSONArray(jsonContent);
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject obj = jsonArray.getJSONObject(i);
-
-                    // 1. kbo_pcode가 있는지 먼저 확인하고, 없으면 pcode를 찾습니다.
-                    String pcode;
-                    if (obj.has("kbo_pcode")) {
-                        pcode = String.valueOf(obj.get("kbo_pcode"));
-                    } else if (obj.has("pcode")) {
-                        pcode = String.valueOf(obj.get("pcode"));
-                    } else {
-                        // 둘 다 없는 경우 로그를 남기고 넘어갑니다.
-                        log.warn("#### [{}] {}번째 데이터에 식별자(pcode)가 없습니다.", type, i);
-                        continue;
-                    }
-
-                    // 전체 JSON 객체를 문자열로 저장하여 캐싱
-                    playerMasterDataMap.put(pcode, obj.toString());
-                }
-                log.info("====> [성공] {} 명의 {} 데이터를 메모리에 캐싱했습니다.", jsonArray.length(), type);
-            } catch (Exception e) {
-                // 이 로그가 사용자님이 보신 ERROR 로그입니다.
-                log.error("#### [초기화 실패] {} 데이터 로드 중 오류: {}", type, e.getMessage());
-            }
+    private String extractPcode(JSONObject obj) {
+        if (obj.has("kbo_pcode")) {
+            return String.valueOf(obj.get("kbo_pcode"));
+        } else if (obj.has("pcode")) {
+            return String.valueOf(obj.get("pcode"));
         }
+        return null;
     }
 
     //포지션에 따라 타자 OR 투수 프롬프트를 분기 생성
     public String generatePlayerReport(PredictionResult pred) {
         String pcode = pred.getPlayer().getKboPcode();
-        String s3Context = playerMasterDataMap.getOrDefault(pcode, "기본 선수 정보만 제공됨");
+        String s3Context = s3CacheManager.getOrDefault(CACHE_KEY, pcode, "기본 선수 정보만 제공됨");
 
         if (s3Context == null) {
             log.warn("#### [데이터 누락] PCODE: {} 에 해당하는 마스터 데이터를 찾을 수 없습니다.", pcode);
@@ -88,7 +74,14 @@ public class ReportBedrockService {
             prompt = constructHitterPrompt(pred, s3Context);
         }
 
-        return invokeBedrock(prompt);
+        return bedrockClientFacade.invoke(
+                MODEL_ID, 2000, 0.3,
+                SYSTEM_PROMPT,
+                List.of(BedrockMessage.user(prompt)),
+                BedrockErrorStrategy.RETURN_FALLBACK,
+                FALLBACK_MESSAGE,
+                CALLER_NAME
+        );
     }
 
     //[타자용 프롬프트 생성]
@@ -187,6 +180,7 @@ public class ReportBedrockService {
                 shapSummary, perf2025
         );
     }
+
     // 타자용 SHAP 추출
     private String extractHitterShap(String s3Context) {
         try {
@@ -201,11 +195,10 @@ public class ReportBedrockService {
                 if (!shap.has(m)) continue;
                 JSONObject obj = shap.getJSONObject(m);
 
-                // 상승/하락 요인이 실제 배열인지 확인 후 추출
                 if (obj.has("top_positive")) {
                     sb.append("[").append(m.toUpperCase()).append(" 상승 동력]: ");
                     JSONArray pos = obj.getJSONArray("top_positive");
-                    for (int i = 0; i < Math.min(3, pos.length()); i++) { // 상위 3개로 확대
+                    for (int i = 0; i < Math.min(3, pos.length()); i++) {
                         sb.append(metricTranslator.translate(pos.getJSONObject(i).getString("feature"))).append(", ");
                     }
                 }
@@ -236,7 +229,7 @@ public class ReportBedrockService {
 
             sb.append("- 긍정적 기여(상승): ");
             JSONArray pos = shap.getJSONArray("top_positive");
-            for (int i = 0; i < Math.min(5, pos.length()); i++) { // 상위 5개까지 확대
+            for (int i = 0; i < Math.min(5, pos.length()); i++) {
                 sb.append(metricTranslator.translate(pos.getJSONObject(i).getString("feature"))).append(", ");
             }
 
@@ -250,39 +243,6 @@ public class ReportBedrockService {
         } catch (Exception e) {
             log.error("#### [투수 SHAP 추출 실패] 에러: {}", e.getMessage());
             return "핵심 분석 지표 데이터 로드 실패";
-        }
-    }
-
-    //캐싱된 데이터를 찾아 베드락에게 전달
-    private String invokeBedrock(String prompt) {
-        JSONObject payload = new JSONObject();
-        payload.put("anthropic_version", "bedrock-2023-05-31");
-        payload.put("max_tokens", 2000);
-        payload.put("temperature", 0.3);
-
-        payload.put("system", "너는 KBO 데이터 전략가야. 아래 규칙을 어기면 리포트가 파괴되니 반드시 지켜:\n" +
-                "1. 모든 강조(`**`)는 단어에 '밀착'시킨다. (예: `**타율**` (O), `** 타율 **` (X))\n" +
-                "2. 문장 끝에 마침표(.)가 있다면 반드시 마침표 '뒤'가 아닌 '앞'에서 `**`를 닫는다. (예: `...합니다.**` (O))\n" +
-                "3. 지표 이름(AVG, HR 등)이 나오면 무조건 한글명을 포함해 `**지표명(한글명)**`으로 통일한다.\n" +
-                "4. 내용이 끝난 뒤 의미 없는 `**` 찌꺼기를 절대 남기지 마.");
-
-        JSONArray messages = new JSONArray();
-        messages.put(new JSONObject().put("role", "user").put("content", prompt));
-        payload.put("messages", messages);
-
-        try {
-            InvokeModelRequest request = InvokeModelRequest.builder()
-                    .modelId("anthropic.claude-3-haiku-20240307-v1:0")
-                    .contentType("application/json")
-                    .body(SdkBytes.fromUtf8String(payload.toString()))
-                    .build();
-
-            InvokeModelResponse response = bedrockClient.invokeModel(request);
-            JSONObject resp = new JSONObject(response.body().asUtf8String());
-            return resp.getJSONArray("content").getJSONObject(0).getString("text");
-        } catch (Exception e) {
-            log.error(">>>> [BEDROCK ERROR] 리포트 생성 실패: {}", e.getMessage());
-            return "AI 리포트 생성 중 오류가 발생했습니다.";
         }
     }
 }
