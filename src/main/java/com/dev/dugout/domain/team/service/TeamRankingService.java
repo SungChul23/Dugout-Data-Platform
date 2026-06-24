@@ -4,6 +4,7 @@ import com.dev.dugout.domain.team.dto.TeamRankResponseDto;
 import com.dev.dugout.domain.team.entity.DailyTeamRanking;
 import com.dev.dugout.domain.team.repository.DailyTeamRankingRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 public class TeamRankingService {
     private final DailyTeamRankingRepository rankingRepository;
 
+    @Cacheable(value = "teamRanking")
     @Transactional(readOnly = true)
     public List<TeamRankResponseDto> getAllTeamRankings() {
 

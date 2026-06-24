@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -71,6 +72,7 @@ public class KboIngestController {
             )
     )
     @ApiResponse(responseCode = "200", description = "입고 요청 수락 (백그라운드 처리 시작)")
+    @CacheEvict(value = {"teamRanking", "teamPerformance", "hitterLeaderboard", "pitcherLeaderboard", "dashboardStats"}, allEntries = true)
     @PostMapping("/kbo/notify")
     public ResponseEntity<String> notifyDataReady(
             @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -96,6 +98,7 @@ public class KboIngestController {
                     """
     )
     @ApiResponse(responseCode = "200", description = "골든글러브 예측 데이터 입고 성공")
+    @CacheEvict(value = "goldenGlove", allEntries = true)
     @PostMapping("/ml/gg")
     public ResponseEntity<String> ingestLeaderboard(
             @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String authHeader,

@@ -4,6 +4,7 @@ package com.dev.dugout.domain.player.service;
 import com.dev.dugout.domain.player.dto.GoldenGloveResponseDto;
 import com.dev.dugout.domain.player.entity.GoldenGlovePrediction;
 import com.dev.dugout.domain.player.repository.GoldenGlovePredictionRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ public class GoldenGloveService {
 
     private final GoldenGlovePredictionRepository repository;
 
+    @Cacheable(value = "goldenGlove")
     @Transactional(readOnly = true)
     public GoldenGloveResponseDto.LeaderboardResponse getLatestLeaderboard() {
 

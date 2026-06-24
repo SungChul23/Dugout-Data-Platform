@@ -4,6 +4,7 @@ import com.dev.dugout.domain.team.dto.TeamPerformanceResponseDto;
 import com.dev.dugout.domain.team.entity.DailyTeamStats;
 import com.dev.dugout.domain.team.repository.DailyTeamStatsRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ public class TeamPerformanceService {
 
     private final DailyTeamStatsRepository teamStatsRepository;
 
+    @Cacheable(value = "teamPerformance")
     @Transactional(readOnly = true)
     public List<TeamPerformanceResponseDto> getAllTeamPerformances() {
         // 1. DB에서 가장 최신 날짜 조회

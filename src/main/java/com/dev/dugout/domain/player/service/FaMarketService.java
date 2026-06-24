@@ -9,6 +9,7 @@ import com.dev.dugout.domain.team.KboTeamRegistry;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class FaMarketService {
     private final FaMarketBedrockService faMarketBedrockService;
 
     // 리스트 조회 (연도별, 팀별 필터링)
+    @Cacheable(value = "faMarketList", key = "#year + '_' + #teamName")
     public List<FaListResponseDto> getFaList(Integer year, String teamName) {
         Integer teamId = convertTeamNameToId(teamName);
 
