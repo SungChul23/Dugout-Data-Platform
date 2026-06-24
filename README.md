@@ -539,6 +539,48 @@ OS 백그라운드 루틴이 추가 메모리 요구 시 OOM Killer에 의해 �
 **결과**
 추가 인프라 비용 **0원**으로 서버 다운 장애 완전 해소. 24시간 안정적 배치 파이프라인 운영.
 
+### ✅ (2026.06.24) 인프라 비용 최적화 — RDS → Docker MySQL 이관
+
+**배경**  
+AWS RDS(db.t3.micro)는 최소 인스턴스라도 월 고정 비용이 발생.
+단일 EC2에서 Spring Boot + DB를 함께 운영하면 RDS 비용을 완전히 제거.
+
+**변경 사항**
+- AWS RDS 인스턴스 제거 → EC2 내부 Docker MySQL 8.0 컨테이너로 데이터 완전 이관
+- `spring.jpa.hibernate.ddl-auto=update` → `validate`로 변경 (스키마 자동 변경 방지, 데이터 보호)
+- GitHub Actions 배포 시 시크릿 인자에 따옴표 추가 (`&` 포함 JDBC URL의 쉘 파싱 오류 해결)
+- Docker MySQL 데이터는 `/home/ubuntu/mysql_data`에 호스트 볼륨 마운트로 영속성 보장
+
+**결과**  
+RDS 월 고정 비용 완전 제거. 기존 Lambda 적재 파이프라인 및 프론트엔드 API 응답 구조 변경 없음.
+
+---
+
+### ✅ (2026.06.24) Caffeine 캐시 전략 도입 — DB 부하 최소화
+
+**배경**  
+야구 데이터는 하루 1회(경기 종료 후) 적재되며, 적재 사이에는 데이터가 변하지 않음.
+그러나 모든 API가 요청마다 DB를 조회하고 있어, 동일 데이터를 반복 쿼리하는 비효율이 존재.
+
+**적용 전략**
+
+| 캐시 대상 | TTL | 무효화 트리거 |
+|-----------|-----|--------------|
+| 팀 순위 (`teamRanking`) | 6시간 | `/ingest/kbo/notify` 적재 시 `@CacheEvict` |
+| 팀 성적 (`teamPerformance`) | 6시간 | `/ingest/kbo/notify` 적재 시 `@CacheEvict` |
+| 타자 리더보드 (`hitterLeaderboard`) | 6시간 | `/ingest/kbo/notify` 적재 시 `@CacheEvict` |
+| 투수 리더보드 (`pitcherLeaderboard`) | 6시간 | `/ingest/kbo/notify` 적재 시 `@CacheEvict` |
+| 골든글러브 예측 (`goldenGlove`) | 6시간 | `/ingest/ml/gg` 적재 시 `@CacheEvict` |
+| FA 선수 목록 (`faMarketList`) | 6시간 | TTL 자동 만료 (시즌 중 거의 변동 없음) |
+
+**동작 원리**
+- 평소: `@Cacheable`로 캐시 히트 → DB 접근 0회
+- 적재 파이프라인 실행 시: `@CacheEvict`로 관련 캐시 강제 삭제 → 다음 요청에서 새 데이터 DB 조회 후 재캐싱
+- TTL 6시간: 안전빵. evict가 누락되더라도 최대 6시간 후 자동 갱신
+
+**결과**  
+적재 사이 구간에서 DB 쿼리 횟수를 약 90% 이상 절감. t3.small(2GB RAM) 환경에서 Docker MySQL + Spring + 캐시가 안정적으로 공존.
+
 ---
 
 ## 8. 회고
