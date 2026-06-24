@@ -1,4 +1,4 @@
-ㄴㅇpackage com.dev.dugout.domain.chat.service;
+package com.dev.dugout.domain.chat.service;
 
 import com.dev.dugout.infrastructure.aws.bedrock.BedrockInvocationException;
 import com.github.benmanes.caffeine.cache.Cache;
