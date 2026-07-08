@@ -45,7 +45,7 @@ public class NewsService {
         URI uri = UriComponentsBuilder
                 .fromUriString("https://openapi.naver.com/v1/search/news.json")
                 .queryParam("query", searchQuery)
-                .queryParam("display", 6)
+                .queryParam("display", 15)
                 .queryParam("sort", "date")
                 .encode(StandardCharsets.UTF_8)
                 .build()
@@ -73,6 +73,7 @@ public class NewsService {
                         String cleanDesc  = item.getDescription().replaceAll("<[^>]+>", "");
                         return cleanTitle.contains(team) || cleanDesc.contains(team);
                     })
+                    .limit(6)
                     .toList();
             log.info("News filtered: {}/{} articles matched team '{}'", filtered.size(), body.getItems().size(), team);
             return new NewsResponseDto(filtered);
