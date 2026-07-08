@@ -14,4 +14,8 @@ public class NewsResponseDto {
 
     @Schema(description = "뉴스 기사 목록")
     private List<NewsItemDto> items = new ArrayList<>();
+
+    public NewsResponseDto(List<NewsItemDto> items) {
+        this.items = items;
+    }
 }
