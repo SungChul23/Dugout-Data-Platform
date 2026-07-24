@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -62,8 +63,9 @@ public class ChatBedrockService {
                 : dbResult.toString();
 
         String prompt = String.format(
-                "%s\n\n[사용자 질문]\n%s\n\n[DB 조회 결과]\n%s\n\n답변:",
+                "%s\n\n[오늘 날짜]\n%s\n\n[사용자 질문]\n%s\n\n[DB 조회 결과]\n%s\n\n답변:",
                 systemPrompt,
+                LocalDate.now(),
                 question,
                 resultStr
         );
