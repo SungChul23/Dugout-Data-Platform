@@ -40,7 +40,7 @@ public class NewsService {
 
         boolean isMlb = "메이저리그 코리안리거".equals(team);
         // 방법 1: 팀명을 따옴표로 감싸 Naver API 레벨에서 정확한 구문 검색
-        String searchQuery = isMlb ? "\"MLB 한국인 선수\"" : "\"" + team + "\" 야구";
+        String searchQuery = isMlb ? "MLB 한국인 선수" : "\"" + team + "\" 야구";
 
         URI uri = UriComponentsBuilder
                 .fromUriString("https://openapi.naver.com/v1/search/news.json")
