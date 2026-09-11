@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,6 +82,10 @@ public class GameResultIngestStrategy implements KboIngestStrategy {
                 // [Update] 이미 일정이 존재하는 경우 -> 더티 체킹을 통한 상태 및 점수 업데이트
                 Game game = optionalGame.get();
                 game.updateResult(dto.getHomeScore(), dto.getAwayScore(), dto.getStatus());
+                if (game.getGameTime() == null) {
+                    // 과거 Insert 버그 등으로 game_time이 비어있는 기존 row는 재입고 시 채워준다
+                    game.setGameTime(parseGameTime(dto.getGameTime()));
+                }
                 updatedCount++;
             } else {
                 // [Insert] 우천 취소 후 재편성 등 DB에 아예 없던 새로운 경기일 경우
@@ -89,8 +95,7 @@ public class GameResultIngestStrategy implements KboIngestStrategy {
                 if (homeTeam != null && awayTeam != null) {
                     Game newGame = Game.builder()
                             .gameDate(gameDate)
-                            // db의 game_time 타입(LocalTime, String 등)에 맞춰 파싱 처리 필요
-                            // .gameTime(LocalTime.parse(dto.getGameTime()))
+                            .gameTime(parseGameTime(dto.getGameTime()))
                             .homeTeam(homeTeam)
                             .awayTeam(awayTeam)
                             .homeScore(dto.getHomeScore())
@@ -109,5 +114,17 @@ public class GameResultIngestStrategy implements KboIngestStrategy {
         }
 
         log.info(">>>> [GAME_RESULT 입고 완료] 업데이트: {}건, 신규추가: {}건", updatedCount, insertedCount);
+    }
+
+    private LocalTime parseGameTime(String gameTime) {
+        if (gameTime == null || gameTime.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalTime.parse(gameTime);
+        } catch (DateTimeParseException e) {
+            log.warn(">>>> [GAME_RESULT] game_time 파싱 실패, null로 저장합니다. 값: {}", gameTime);
+            return null;
+        }
     }
 }
