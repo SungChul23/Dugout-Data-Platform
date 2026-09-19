@@ -7,8 +7,9 @@ import com.dev.dugout.domain.player.repository.PitcherRepository;
 import com.dev.dugout.domain.postseason.dto.PostseasonBracketResponseDto;
 import com.dev.dugout.domain.postseason.dto.PostseasonTopPlayersResponseDto;
 import com.dev.dugout.domain.team.dto.TeamRankResponseDto;
+import com.dev.dugout.domain.team.entity.DailyTeamRanking;
+import com.dev.dugout.domain.team.repository.DailyTeamRankingRepository;
 import com.dev.dugout.domain.team.repository.TeamRepository;
-import com.dev.dugout.domain.team.service.TeamRankingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -30,21 +31,49 @@ public class PostseasonService {
     private static final double MIN_IP_FOR_TOP_PITCHER = 10;
     private static final int TOP_PLAYER_COUNT = 3;
 
-    private final TeamRankingService teamRankingService;
+    private final DailyTeamRankingRepository dailyTeamRankingRepository;
     private final TeamRepository teamRepository;
     private final HitterRepository hitterRepository;
     private final PitcherRepository pitcherRepository;
 
     @Cacheable(value = "postseasonBracket")
     public PostseasonBracketResponseDto getBracket() {
-        List<TeamRankResponseDto> top5Teams = teamRankingService.getAllTeamRankings().stream()
-                .filter(team -> team.getTeamRank() != null && team.getTeamRank() <= TOP5)
-                .sorted(Comparator.comparing(TeamRankResponseDto::getTeamRank))
+        LocalDate latestDate = dailyTeamRankingRepository.findMaxBaseDate().orElse(null);
+        if (latestDate == null) {
+            return PostseasonBracketResponseDto.builder().top5Teams(List.of()).matchups(List.of()).build();
+        }
+
+        // 순위 그래프용 findAllRankingsWithTeam()은 전체 시즌 히스토리를 반환하므로 쓰지 않고,
+        // 최신 날짜의 순위만 직접 조회한다 (findAllByBaseDateOrderByRankAsc는 이미 rank 오름차순 정렬됨)
+        List<TeamRankResponseDto> top5Teams = dailyTeamRankingRepository.findAllByBaseDateOrderByRankAsc(latestDate).stream()
+                .filter(ranking -> ranking.getRank() != null && ranking.getRank() <= TOP5)
+                .map(this::toTeamRankResponseDto)
                 .collect(Collectors.toList());
 
         return PostseasonBracketResponseDto.builder()
                 .top5Teams(top5Teams)
                 .matchups(buildMatchups(top5Teams))
+                .build();
+    }
+
+    private TeamRankResponseDto toTeamRankResponseDto(DailyTeamRanking entity) {
+        return TeamRankResponseDto.builder()
+                .rankingDate(entity.getBaseDate())
+                .teamId(entity.getTeam().getId())
+                .teamName(entity.getTeam().getName())
+                .awayRecord(entity.getAwayRecord())
+                .draws(entity.getDraws())
+                .gamesBehind(entity.getGamesBehind())
+                .homeRecord(entity.getHomeRecord())
+                .losses(entity.getLosses())
+                .teamRank(entity.getRank())
+                .recent10games(entity.getLast10Games())
+                .streak(entity.getStreak())
+                .totalGames(144)
+                .winRate(entity.getWinRate())
+                .wins(entity.getWins())
+                .gamesPlayed(entity.getGamesPlayed())
+                .last10games(entity.getLast10Games())
                 .build();
     }
 
