@@ -72,7 +72,7 @@ public class KboIngestController {
             )
     )
     @ApiResponse(responseCode = "200", description = "입고 요청 수락 (백그라운드 처리 시작)")
-    @CacheEvict(value = {"teamRanking", "teamPerformance", "hitterLeaderboard", "pitcherLeaderboard", "dashboardStats"}, allEntries = true)
+    @CacheEvict(value = {"teamRanking", "teamPerformance", "hitterLeaderboard", "pitcherLeaderboard", "dashboardStats", "postseasonBracket", "postseasonTopPlayers"}, allEntries = true)
     @PostMapping("/kbo/notify")
     public ResponseEntity<String> notifyDataReady(
             @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String authHeader,

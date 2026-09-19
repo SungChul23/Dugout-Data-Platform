@@ -29,6 +29,8 @@ public class CacheConfig {
      * - goldenGlove: 골든글러브 예측 (6h, evict: /ingest/ml/gg)
      * - faMarketList: FA 선수 목록 (6h, evict: 거의 없음)
      * - dashboardStats: 대시보드 일일 성적 (6h, evict: /ingest/kbo/notify)
+     * - postseasonBracket: 가을야구 5강 브라켓 (6h, evict: /ingest/kbo/notify)
+     * - postseasonTopPlayers: 팀별 주요 선수 TOP3 (6h, evict: /ingest/kbo/notify)
      */
     @Bean
     public CacheManager cacheManager() {
@@ -39,7 +41,9 @@ public class CacheConfig {
                 "pitcherLeaderboard",
                 "goldenGlove",
                 "faMarketList",
-                "dashboardStats"
+                "dashboardStats",
+                "postseasonBracket",
+                "postseasonTopPlayers"
         );
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(6, TimeUnit.HOURS)
