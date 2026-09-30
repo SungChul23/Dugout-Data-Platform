@@ -21,11 +21,12 @@
 3. [기술 스택 & 선택 이유](#3-기술-스택--선택-이유)
 4. [시스템 아키텍처](#4-시스템-아키텍처)
    - 4-1. 데이터 파이프라인 (일별 크롤링 → DB)
-   - 4-2. 선수 미래 성적 예측 ML 파이프라인
-   - 4-3. FA 등급 분석 ML & GenAI 파이프라인
-   - 4-4. Insight Engine (In-Memory RAG)
-   - 4-5. KBO 챗봇 (Text-to-SQL RAG)
-   - 4-6. 팀 추천 파이프라인
+   - 4-2. 골든글러브 수상 예측 ML & GenAI 파이프라인
+   - 4-3. 선수 미래 성적 예측 ML 파이프라인
+   - 4-4. FA 등급 분석 ML & GenAI 파이프라인
+   - 4-5. Insight Engine (In-Memory RAG)
+   - 4-6. KBO 챗봇 (Text-to-SQL RAG)
+   - 4-7. 팀 추천 파이프라인
 5. [AI/ML 모델링](#5-aiml-모델링)
 6. [프로젝트 구조](#6-프로젝트-구조)
 7. [기술적 의사결정 & 트러블슈팅](#7-기술적-의사결정--트러블슈팅)
@@ -47,11 +48,26 @@ KBO 관련 데이터는 공식 홈페이지, 각종 커뮤니티, 뉴스 등 다
 
 > 단순 기록 조회를 넘어, **데이터 수집 → 정제 → 모델링 → 인사이트 제공** 전 과정을 직접 설계하고 구현한다.
 
-- KBO 데이터를 **매일 자동 수집·정제**하여 DB에 적재 (하루 수집 데이터: 타자 269 · 투수 231 · 일정 135 · 팀 20 · **총 655건**)
+- KBO 데이터를 **매일 자동 수집·정제**하여 DB에 적재 (하루 수집 데이터: 타자 292 · 투수 268 · 일정 110 · 팀 20 · **총 690건**)
 - **ML 모델 3종** (선수 성적 예측, FA 등급 분석, 골든글러브 예측) 으로 예측 인사이트 제공
 - 예측 결과의 **근거를 GenAI로 자동 설명** (In-Memory RAG)
 - **자연어로 KBO 데이터 질의** (Text-to-SQL RAG)
 - 취향 데이터 기반 **팀 추천** 으로 새 팬 유입 유도
+
+### 📈 핵심 성과 한눈에 보기
+
+| 영역 | 지표 | 결과 | 상세 |
+|------|------|------|------|
+| 수집 Lambda 경량화 | 실행 시간 | **98.56초 → 23.85초** (약 76% 감소) | [7-3](#7-3-트러블슈팅) |
+| 수집 Lambda 경량화 | 최대 메모리 사용량 | **960MB → 233MB** (약 76% 감소) | [7-3](#7-3-트러블슈팅) |
+| Athena 최적화 ① | CSV → Parquet 전환 | 스캔량 **43.4% 감소**, 실행시간 **23% 단축** | [7-2](#7-2-성능-최적화) |
+| Athena 최적화 ② | Partition Pruning (팀 추천) | 스캔량 **64.6% 감소** | [7-2](#7-2-성능-최적화) |
+| Text-to-SQL 인덱스 | `MAX(h_g)` 조회 | **18.5ms → 0.64ms** | [7-2](#7-2-성능-최적화) |
+| 골든글러브 예측 | Top-1 Accuracy | **76.9%** | [5](#5-aiml-모델링) |
+| 오케스트레이션 비용 | Step Functions | 프리 티어 내 **0원** | [7-1](#7-1-아키텍처-선택-이유) |
+| 인프라 고정 비용 | RDS → EC2 내 Docker MySQL | RDS 월 고정 비용 **제거** | [7-4](#7-4-인프라-비용-최적화) |
+
+> ⚠️ Athena의 **43.4%**(CSV → Parquet)와 **64.6%**(Partition Pruning)는 **서로 다른 실험의 결과**이며, 누적 효과가 아닙니다.
 
 ---
 
@@ -98,6 +114,10 @@ KBO 관련 데이터는 공식 홈페이지, 각종 커뮤니티, 뉴스 등 다
 
 ## 3. 기술 스택 & 선택 이유
 
+> **📝 DB 표기 규칙**  
+> 2026.06.24까지는 **AWS RDS (MySQL, db.t3.micro)** 를 사용했고, 이후에는 **EC2 내 Docker MySQL 8.0 컨테이너**로 이관했습니다.  
+> 본 문서에서 **현재 구조**를 설명할 때는 `Service DB (MySQL)`, **과거 구조**를 설명할 때만 `RDS`로 표기합니다.
+
 ### 🖥️ Frontend
 | 기술 | 선택 이유 |
 |------|-----------|
@@ -110,8 +130,15 @@ KBO 관련 데이터는 공식 홈페이지, 각종 커뮤니티, 뉴스 등 다
 | **Java 17 + Spring Boot 3.x** | 안정적인 서버 운영과 타입 안정성. 다수의 API 엔드포인트를 구조적으로 관리하기 위해 선택 |
 | **JPA / QueryDSL** | 복잡한 선수·경기 데이터 조회를 타입 세이프하게 작성하기 위해 QueryDSL 병행 사용 |
 | **JWT** | 사용자 인증 시 토큰을 HTTP 헤더에 포함시켜 요청마다 서버에서 검증하는 Stateless 인증 방식 구현 |
-| **Caffeine Cache** | Text-to-SQL 챗봇의 대화 히스토리 유지 및 API 토큰 최적화. 인메모리 캐시로 DB 조회 없이 대화 맥락 관리 |
+| **Caffeine Cache** | Text-to-SQL 챗봇의 대화 히스토리 유지 및 API 토큰 최적화. 인메모리 캐시로 DB 조회 없이 대화 맥락 관리 (통계성 API 캐싱은 [7-2](#7-2-성능-최적화) 참고) |
+| **SchemaRouter** | 질문마다 필요한 테이블 Schema만 프롬프트에 전달. 자주 나오는 질문은 규칙 기반으로, 애매한 질문은 LLM Router로 라우팅 |
 | **SQL Validator** | LLM이 생성한 SQL의 DDL/DML 실행을 차단하여 LLM 인젝션 위협 원천 방지. SELECT 전용 쿼리만 허용 |
+
+### 🗄️ Database
+| 기술 | 선택 이유 |
+|------|-----------|
+| **MySQL 8.0 (EC2 내 Docker 컨테이너)** | **2026.06.24 이후 현재 서비스 DB.** Spring Boot와 동일 EC2에서 Docker로 운영하여 고정 비용 제거. 데이터는 호스트 볼륨 마운트로 영속성 보장 |
+| **AWS RDS (MySQL, db.t3.micro)** | **초기 서비스 DB, 2026.06.24까지 사용.** 선수·경기·예측 결과 등 정형 데이터 저장소로 운영 후 비용 최적화를 위해 해체 |
 
 ### 🤖 AI/ML/Data
 | 기술 | 선택 이유 |
@@ -121,20 +148,20 @@ KBO 관련 데이터는 공식 홈페이지, 각종 커뮤니티, 뉴스 등 다
 | **앙상블 (XGBoost + RandomForest + ExtraTrees)** | 선수 미래 성적 예측에서 거포 타자와 컨택 타자 간 예측 오차 편차 문제 발생. 여러 트리 기반 모델을 앙상블하여 특정 타자 유형에 편향되지 않는 안정적인 예측 성능 확보 |
 | **scikit-learn** | 앙상블 모델 구성 및 전처리 파이프라인 구현 |
 | **SHAP** | 모델이 왜 이 예측을 했는지 설명 가능성(XAI) 확보. 단순 예측을 넘어 근거를 제공하기 위한 핵심 도구 |
-| **BeautifulSoup4** | KBO 데이터 크롤링. 정적 HTML 파싱에 적합하고 Python 생태계와 자연스럽게 연동. Lambda 용량 제한(250MB) 내에서 커스텀 Layer로 경량화 |
+| **requests + BeautifulSoup4** | KBO의 ASP.NET PostBack 요청을 직접 재현해 브라우저 없이 데이터를 수집. 브라우저 의존성을 제거해 Lambda 실행 시간과 최대 메모리 사용량을 크게 절감 (전환 과정은 [7-3](#7-3-트러블슈팅) 참고) |
 
 ### ☁️ AWS Cloud
 | 기술 | 선택 이유 |
 |------|-----------|
-| **EC2 (t2.micro -> t3.small)** | 서비스 서버 호스팅 및 Docker DB 통합 운영. RDS 제거를 통해 전체 고정 비용을 최적화하고, 최소한의 비용으로 중단 없는 배포 환경을 보장. (26.06.24)|
-| **RDS (MySQL)** | 선수·경기·예측 결과 등 정형 데이터의 안정적인 영구 저장소 /(26.06.24) rds 해체 |
+| **EC2 (t2.micro → t3.small)** | 서비스 서버 호스팅. 프리 티어(t2.micro) 종료 직후 t3.small로 스케일업. EC2 내부에 Docker MySQL까지 함께 운영해야 했기 때문. RDS 해체(2026.06.24) 이후 Spring Boot + Docker MySQL을 한 인스턴스에서 통합 운영하여 전체 고정 비용을 최적화하고, 최소한의 비용으로 중단 없는 배포 환경을 보장 |
 | **Amazon S3** | 대용량 KBO 원천 데이터 및 정제 데이터 저장. Parquet 포맷으로 분석용, JSON 포맷으로 조회용 이원화 적재 |
+| **S3 Gateway Endpoint** (`com.amazonaws.ap-northeast-2.s3`) | EC2에서 S3 Data Lake에 접근하는 경로 구성. (S3 → DB 연결 용도가 아님) |
 | **AWS Lambda** | 크롤링·정제·피처 엔지니어링·리포트 생성 등 파이프라인 각 단계를 독립 함수로 구성. 실행 시에만 비용 발생 |
 | **AWS Step Functions** | Lambda 함수를 병렬·순차 실행으로 조율하는 파이프라인 오케스트레이터. 상태 머신으로 재실행 및 에러 핸들링 명확하게 처리. 프리 티어 내에서 오케스트레이션 비용 0원으로 운영 |
 | **Amazon EventBridge** | Step Functions를 매일 일정 시각에 자동 트리거하는 cron 스케줄러 |
 | **Amazon ECR** | ML 모델 실행 환경을 Docker 이미지로 패키징 저장. 모델 환경 재현성 보장 |
-| **AWS Glue (Crawler/Catalog)** | S3 데이터의 메타데이터 관리 및 Parquet 변환. Glue 카탈로그 재구성으로 Athena 스캔량 43.4% 감소·실행시간 23% 단축 |
-| **Amazon Athena** | S3 데이터를 SQL로 직접 조회. Partition Pruning 유도로 스캔량 최적화 |
+| **AWS Glue (Crawler/Catalog)** | Silver Layer의 **스키마 및 파티션 메타데이터 관리**, Athena 테이블 제공. (Parquet 변환은 Glue가 아닌 `transformer-kbo` Lambda가 수행) |
+| **Amazon Athena** | S3 데이터를 SQL로 직접 조회. CSV → Parquet 전환과 year 파티션 기반 Partition Pruning으로 스캔량 최적화 |
 | **Amazon SageMaker (ml.t3.medium)** | ML 모델 학습 및 배치 추론 환경. 로컬 리소스 제약 없이 안정적인 학습·추론 환경 확보 |
 | **Amazon Bedrock (Claude 3 Haiku)** | GenAI 기반 AI 리포트 생성. 자체 모델 서빙 없이 Claude를 API 형태로 바로 연결 |
 | **Amazon CloudWatch** | 각 Lambda 함수와 Step Functions 실행 로그를 실시간 모니터링 |
@@ -146,7 +173,7 @@ KBO 관련 데이터는 공식 홈페이지, 각종 커뮤니티, 뉴스 등 다
 | **GitHub Actions** | 코드 푸시 시 자동 빌드·배포 파이프라인 구성 |
 | **Docker** | ML 모델 실행 환경을 이미지로 패키징하여 ECR에 업로드, 환경 재현성 보장 |
 | **Nginx** | EC2 앞단의 리버스 프록시. 포트 라우팅 및 정적 파일 서빙 |
-| **VPC** | 퍼블릭·프라이빗 서브넷 분리로 RDS 등 내부 리소스 네트워크 격리 |
+| **VPC** | 퍼블릭·프라이빗 서브넷 분리로 내부 리소스 네트워크 격리 |
 
 ---
 
@@ -160,54 +187,123 @@ KBO 관련 데이터는 공식 홈페이지, 각종 커뮤니티, 뉴스 등 다
 > 병렬 처리로 수집 시간을 단축했습니다.  
 > 수집 → 정제 → 적재 / 골든글러브 예측 갱신까지 전 과정이 하나의 자동화된 흐름으로 연결됩니다.
 
-![데이터 파이프라인](assets/data_pipeline.png)
+![데이터 파이프라인](assets/Dugout_26_Season_Datapipline.png)
 
 **파이프라인 실행 흐름**
 
 ```
-EventBridge (cron · 매일 22:00 KST)
+EventBridge (cron · 매일 23:00 KST)
     └─▶ Step Functions 트리거
             │
             ├─▶ [병렬 수집 - Parallel State] Lambda × 5 동시 실행
-            │       ├─ scraper-team-rank   (팀 순위)
-            │       ├─ scraper-team-stats  (팀 성적)
-            │       ├─ scraper-game-result (경기 결과)
+            │       ├─ scraper-team-rank     (팀 순위)
+            │       ├─ scraper-team-stats    (팀 성적)
+            │       ├─ scraper-game-result   (경기 결과)
             │       ├─ scraper-player-hitter (타자 성적)
-            │       └─ scraper-pitcher     (투수 성적)
+            │       └─ scraper-pitcher       (투수 성적)
             │
-            └─▶ 정제 Lambda (transformer-kbo · JSON 변환 → S3 저장)
+            └─▶ 정제 Lambda (transformer-kbo · Parquet 변환 → S3 Silver 저장)
                     │
                     ├─▶ [Branch A] 골든글러브 예측 갱신
-                    │       ├─ 피처 엔지니어링 Lambda (feature-engineer-lambda)
-                    │       ├─ 모델 추론 (SageMaker · ECR 이미지 기반 · SHAP 산출)
-                    │       ├─ AI 리포트 생성 Lambda (gg-explainer · Bedrock 연동)
-                    │       ├─ DB 적재 Lambda (gg-db-ingestor)
-                    │       └─ 모델 검증 Lambda (gg-validator · 2026.05.07 추가)
+                    │       ├─ ① feature-engineer  (S3 Silver → 피처 생성)
+                    │       ├─ ② SageMaker         (XGBoost 추론 + SHAP 산출 · ECR 이미지 기반)
+                    │       ├─ ③ gg-explainer      (SHAP 기반 프롬프트 구성 → Bedrock 호출 · AI 리포트 생성)
+                    │       ├─ ④ gg-db-ingestor    (Spring REST API 호출 → Service DB 적재)
+                    │       └─ ⑤ gg-validator      (별도 Lambda · 10개 항목 점검 · 이상 시 SNS · 2026.05.07 추가)
                     │
                     └─▶ [Branch B] KBO 통계 적재
-                            └─ Spring REST API 호출 (kbo-ingest-notifier) → RDS 저장
+                            └─ kbo-ingest-notifier (Spring REST API 호출) → Service DB 저장
 ```
 
 **설계 포인트**
 
 - **병렬 수집**: Parallel State로 5개 도메인 동시 수집, 전체 수집 시간 단축
-- **파이프라인 원자성**: 미등록 선수 감지 시 missing-player-scraper Lambda 동적 호출 및 선적재 구조로 데이터 무결성 보장
+- **파이프라인 원자성**: 미등록 선수 감지 시 `missing-player-scraper` Lambda 동적 호출 및 선적재 구조로 데이터 무결성 보장
 - **병렬 분기**: ML/GenAI 추론(Branch A)과 DB 통계 적재(Branch B)를 독립 분기로 분리, 상호 간섭 없이 병렬 실행
+- **DB 적재 경로 통일**: Branch A·B 모두 **Lambda가 DB에 직접 쓰지 않고**, Spring REST API를 경유해 적재 (검증·캐시 무효화 로직을 Spring 한 곳에서 관리)
+- **호출 주체 명확화**: Bedrock을 호출하는 주체는 SageMaker가 아니라 `gg-explainer` Lambda. `feature-engineer`와 `gg-explainer`는 직접 연결되지 않고 SageMaker 추론을 사이에 둠
 - **모니터링**: CloudWatch로 각 Lambda 실행 로그 및 Step Functions 상태 모니터링
 
 > **2026.05.07 모니터링 강화**  
-> `dugout-gg-validator` Lambda를 파이프라인에 추가. DB 적재 완료 후 포지션 누락, 예측 확률 이상, SHAP 기여도 결손 등 총 10개 항목을 자동 점검. 이상 감지 시 SNS 즉시 알림 발송. 검증 실패 여부와 무관하게 파이프라인 실행은 중단되지 않음.
+> `gg-validator` Lambda를 파이프라인에 추가. DB 적재 완료 후 포지션 누락, 예측 확률 이상, SHAP 기여도 결손 등 총 10개 항목을 자동 점검. 이상 감지 시 SNS 즉시 알림 발송. 검증 실패 여부와 무관하게 파이프라인 실행은 중단되지 않음.  
+> (`gg-db-ingestor`와 `gg-validator`는 **서로 독립된 Lambda**입니다.)
+
+#### 🪣 Data Lake 레이어 & Partition 구조
+
+| 레이어 | 역할 |
+|--------|------|
+| **Silver** | `transformer-kbo`가 정제·Parquet 변환한 분석용 데이터. Glue Catalog가 스키마/파티션 메타데이터를 관리하고 Athena가 조회 |
+| **Gold** | ML **예측 결과 / SHAP / AI 리포트 보존용**. 서비스가 요청 시점에 Gold를 직접 읽어 서빙하지 않음 (**실제 서빙은 Service DB + Spring API**) |
+
+```
+Silver Partition (조회 패턴에 맞춘 year 단위)
+├─ type=hitter/year=2003/
+├─ type=pitcher/year=2012/
+└─ ... (2001~2025 역사 데이터)
+```
+
+- 월/일 단위가 아닌 **year 기준**으로 파티셔닝: 팀 추천처럼 "N년도 이후" 범위 조회가 주된 패턴이기 때문
+- 이 파티션 구조가 [4-7 팀 추천의 Partition Pruning](#4-7-팀-추천-파이프라인)의 기반
 
 ---
 
-### 4-2. 선수 미래 성적 예측 — ML & GenAI 파이프라인
+### 4-2. 골든글러브 수상 예측 — ML & GenAI 파이프라인
+
+> **왜 이 구조인가?**  
+> 골든글러브 예측은 시즌 전 1회 학습하는 다른 예측 모델과 달리, **매일 경기 데이터가 갱신될 때마다 수상 예측 랭킹을 다시 산출**해야 합니다.  
+> 그래서 일별 데이터 파이프라인([4-1](#4-1-데이터-파이프라인--일별-크롤링--db))의 **Branch A**로 편입해,  
+> 피처 생성 → 추론(SHAP 포함) → AI 리포트 생성 → DB 적재 → 검증까지 하나의 자동화된 흐름으로 구성했습니다.
+
+<!-- TODO: 골든글러브 파이프라인 이미지 경로를 넣어주세요. 예) ![골든글러브 예측 파이프라인](assets/파일명.png) -->
+
+**모델 구성**
+
+| 항목 | 내용 |
+|------|------|
+| 문제 정의 | 단순 분류(수상자 여부)가 아닌 **랭킹 문제** — "누가 가장 위에 올라야 하는가" |
+| 데이터 | 579건, 수상자 비율 16.9% (극심한 클래스 불균형) |
+| 알고리즘 | XGBoost + SHAP (SageMaker 추론) |
+| 불균형 처리 | SMOTE 대신 `scale_pos_weight` 채택 (Top-1 Accuracy 0.6923 → **0.7692**) |
+| 평가 지표 | Top-1 Accuracy, NDCG, MRR |
+| 최종 성능 | **Top-1 Accuracy 76.9%** (Optuna 20회 탐색) |
+
+> 실험 과정과 A/B 테스트 상세는 [5. AI/ML 모델링](#5-aiml-모델링)과 벨로그 시리즈에 정리했습니다.
+
+**파이프라인 실행 흐름 (매일 · Step Functions Branch A)**
+
+```
+S3 Silver (정제 데이터)
+    └─▶ ① feature-engineer (Lambda)
+            · 포지션별 Max-Scaling, 시즌 진행률 편차 제거 피처 생성
+            └─▶ ② SageMaker (ECR 이미지 기반)
+                    · XGBoost 추론 + SHAP 산출
+                    └─▶ ③ gg-explainer (Lambda)
+                            · SHAP 기반 프롬프트 구성 → Bedrock 호출 → AI 리포트 생성
+                            └─▶ ④ gg-db-ingestor (Lambda)
+                                    · Spring REST API 호출 → Service DB 적재
+                                    └─▶ ⑤ gg-validator (Lambda)
+                                            · 10개 항목 점검 · 이상 감지 시 SNS 알림
+```
+
+**설계 포인트**
+
+- **매일 재추론**: 선수 미래 성적·FA 예측이 1회 추론한 결과를 그대로 서비스하는 것과 달리, 골든글러브 예측은 배치 추론으로 결과와 SHAP, AI 리포트가 **매일 갱신**됨
+- **호출 주체 명확화**: Bedrock을 호출하는 주체는 SageMaker가 아니라 `gg-explainer` Lambda. `feature-engineer`와 `gg-explainer`는 직접 연결되지 않고, SageMaker 추론을 사이에 둠
+- **DB 직접 적재 없음**: `gg-db-ingestor`는 RDS/MySQL에 직접 쓰지 않고 **Spring REST API를 경유** → 적재 시 `goldenGlove` 캐시를 `@CacheEvict`로 무효화 ([7-2](#7-2-성능-최적화))
+- **Gold Layer는 보존용**: 예측 결과 / SHAP / AI 리포트를 보존하며, 서비스가 Gold를 직접 읽어 서빙하지 않음. **서빙은 Service DB + Spring API**
+- **독립된 검증 Lambda**: `gg-db-ingestor`와 `gg-validator`는 별개의 Lambda. 포지션 누락, 예측 확률 이상, SHAP 기여도 결손 등을 점검하며, 검증 실패와 무관하게 파이프라인은 중단되지 않음 (2026.05.07 추가)
+- **랭킹 재정의의 서비스 관점 근거**: 사용자에게 매일 수상 예측 1위를 제공하는 서비스이므로, 덜 틀리는 모델보다 **1등을 정확히 찾는 모델**을 선택
+
+---
+
+### 4-3. 선수 미래 성적 예측 — ML & GenAI 파이프라인
 
 > **왜 이 구조인가?**  
 > 실시간 추론 방식이 아닌, 시즌 전 10년치 역대 데이터를 학습하여 다음 시즌 성적을 미리 예측하는 배치 구조입니다.  
-> 예측 결과는 RDS에, SHAP 기반 설명 데이터는 S3 → Java 힙 메모리에 올려두어  
+> 예측 결과는 Service DB에, SHAP 기반 설명 데이터는 S3 → Java 힙 메모리에 올려두어  
 > 프론트 요청 시 **예측값 + 자연어 AI 리포트를 한 번에 반환**하는 흐름으로 설계했습니다.
 
-![선수 성적 예측 파이프라인](assets/gg_pipeline.png)
+![선수 성적 예측 파이프라인](assets/Dugout_Player_Performance_Predictions.png)
 
 **모델 구성**
 
@@ -227,13 +323,13 @@ EventBridge (cron · 매일 22:00 KST)
 [학습 단계 — 시즌 전 1회]
 10년치 KBO 역대 데이터
     └─▶ 피처 엔지니어링
-            ├─▶ 타자 XGBoost 학습 → 예측 결과 RDS 저장 / SHAP JSON → S3
-            └─▶ 투수 XGBoost 학습 → 예측 결과 RDS 저장 / SHAP JSON → S3
+            ├─▶ 타자 XGBoost 학습 → 예측 결과 Service DB 저장 / SHAP JSON → S3
+            └─▶ 투수 XGBoost 학습 → 예측 결과 Service DB 저장 / SHAP JSON → S3
 
 [서비스 단계 — 프론트 요청 시]
 프론트 요청 (선수 ID)
     └─▶ Spring API
-            ├─▶ RDS에서 예측 결과 조회
+            ├─▶ Service DB에서 예측 결과 조회
             └─▶ Java 힙 메모리에서 SHAP JSON 조회 (In-Memory RAG)
                     └─▶ Bedrock으로 자연어 AI 리포트 생성
                             └─▶ 예측값 + AI 리포트 단일 응답 반환
@@ -241,14 +337,14 @@ EventBridge (cron · 매일 22:00 KST)
 
 ---
 
-### 4-3. FA 등급 분석 — ML & GenAI 파이프라인
+### 4-4. FA 등급 분석 — ML & GenAI 파이프라인
 
 > **KBO FA 등급 제도의 한계에서 출발했습니다.**  
 > KBO FA 등급(A/B/C)은 최근 3년 평균 연봉 기준으로 분류되는 제도적 구조입니다.  
 > 연봉은 과거 장기 계약, 팀 내부 연봉 구조, 포지션 희소성 등 경기력 외 요소에도 영향을 받습니다.  
 > "경기력 데이터로 등급을 다시 산출하면 어떤 결과가 나올까?" 라는 질문에서 시작했습니다.
 
-![FA 등급 분석 파이프라인](assets/fa_pipeline.png)
+![FA 등급 분석 파이프라인](assets/Dugout_FA_Pipeline.png)
 
 **모델 구성**
 
@@ -271,13 +367,13 @@ A / B / C 3단계 **다중 클래스 분류 문제**로 설계, XGBoost Classifi
 10년치 KBO 역대 데이터
     └─▶ 피처 엔지니어링 (공격 점수 + 수비 점수 + 유틸리티 여부)
             └─▶ XGBoost Classifier 학습 (A/B/C 다중 분류)
-                    ├─▶ 26·27년 FA 예정 선수 등급 예측 → RDS 저장
+                    ├─▶ 26·27년 FA 예정 선수 등급 예측 → Service DB 저장
                     └─▶ SHAP JSON 생성 → S3 업로드
 
 [서비스 단계 — 프론트 요청 시]
 프론트 요청 (선수 ID)
     └─▶ Spring API
-            ├─▶ RDS에서 FA 등급 조회
+            ├─▶ Service DB에서 FA 등급 조회
             └─▶ Java 힙 메모리에서 SHAP JSON 조회 (In-Memory RAG)
                     └─▶ Bedrock으로 자연어 AI 리포트 생성
                             └─▶ FA 등급 + AI 리포트 단일 응답 반환
@@ -285,7 +381,11 @@ A / B / C 3단계 **다중 클래스 분류 문제**로 설계, XGBoost Classifi
 
 ---
 
-### 4-4. Insight Engine — In-Memory RAG
+### 4-5. Insight Engine — In-Memory RAG
+
+> 📌 **적용 범위: 선수 미래 성적 예측, FA 등급 예측 한정**  
+> 두 모델은 시즌 전 1회 추론한 결과를 그대로 서비스하므로 SHAP JSON이 정적입니다. 그래서 서버 기동 시 메모리에 올려두는 구조가 성립합니다.  
+> 반대로 **골든글러브 예측은 일별 배치 추론으로 결과가 계속 바뀌기 때문에 이 구조의 대상이 아니며**, [4-2](#4-2-골든글러브-수상-예측--ml--genai-파이프라인)처럼 파이프라인 안에서 `gg-explainer` Lambda가 매번 AI 리포트를 생성합니다.
 
 > **왜 이 구조인가?**  
 > 벡터 DB나 외부 스토리지를 두면 인프라 비용과 레이턴시가 발생합니다.  
@@ -300,66 +400,80 @@ A / B / C 3단계 **다중 클래스 분류 문제**로 설계, XGBoost Classifi
 ```
 서버 기동 시: S3에서 SHAP JSON 로드 → JVM 힙 메모리 상주
 사용자 요청 → 선수 ID 추출 → 힙 메모리에서 SHAP JSON 탐색
-→ 등급(RDS) + SHAP 근거(Memory)를 프롬프트로 결합
+→ 등급(Service DB) + SHAP 근거(Memory)를 프롬프트로 결합
 → Bedrock (Claude 3 Haiku) 에 전달 → 자연어 AI 리포트 반환
 ```
 
 **설계 포인트**
 
-- `@PostConstruct`로 서버 기동 시 SHAP JSON을 JVM 힙에 상주, 이후 요청마다 즉시 탐색
+- **적용 범위**: 선수 미래 성적 예측, FA 등급 예측 한정 (1회 추론 결과를 그대로 서비스하는 정적 데이터)
+- `@PostConstruct`로 서버 기동 시 SHAP JSON을 JVM 힙에 상주, 이후 요청마다 **S3 조회 없이** 즉시 탐색
 - 벡터 DB 배제: SHAP은 선수 ID 기반 1:1 매칭, 성적 조회는 SQL 조회 영역으로 유사도 검색 불필요
-- 쓰기 과부하 없음, 최소 데이터만 RDS 저장으로 레이턴시 최소화
+- 쓰기 과부하 없음, 최소 데이터만 Service DB에 저장하여 레이턴시 최소화
 
 ---
 
-### 4-5. KBO 챗봇 — Text-to-SQL RAG
+### 4-6. KBO 챗봇 — Text-to-SQL RAG
 
 > **왜 이 구조인가?**  
 > KBO 성적·일정·순위 데이터는 정형 테이블에 잘 적재된 구조입니다.  
 > 자연어를 SQL로 변환해 DB를 직접 조회하는 방식이 벡터 검색보다  
 > 정확도가 높고 인프라 비용도 낮습니다.  
-> Schema + Few-shot 기반 프롬프트로 SQL 변환 정확도를 높이고,  
+> **SchemaRouter**로 질문에 필요한 Schema만 추려 프롬프트에 전달하고, Few-shot 예시로 SQL 변환 정확도를 높였으며,  
 > SQL Validator로 LLM 인젝션을 원천 차단했습니다.
 
-![Text-to-SQL RAG 아키텍처](assets/ttsql_pipeline.png)
+![Text-to-SQL RAG 아키텍처](assets/Dugout_TTSQL_Chatbot.png)
 
 ```
 ① 사용자 자연어 질문 입력 (React · POST /api/v1/chat)
 ② Caffeine Cache에서 대화 히스토리 조회/저장
-③ Schema 정보 + Few-shot 예시(S3) + 히스토리 기반 프롬프트 구성
-④ Bedrock (Claude 3 Haiku) 에 전달 → SQL 생성
-⑤ SQL Validator (SELECT만 허용 · DROP/DELETE 차단)
-⑥ AWS RDS 실행 → 결과값 반환
-⑦ Bedrock이 결과를 자연어로 변환 → 사용자에게 답변 반환
+③ SchemaRouter: 질문에 필요한 Schema 선택
+      ├─ 자주 등장하는 질문 → 규칙 기반 Routing
+      └─ 애매한 질문        → LLM Router
+④ 선택된 Schema + Few-shot 예시(S3) + 히스토리 기반 프롬프트 구성
+⑤ Bedrock (Claude 3 Haiku) 에 전달 → SQL 생성
+⑥ SQL Validator (SELECT만 허용 · DROP/DELETE 차단)
+⑦ Service DB (MySQL) 실행 → 결과값 반환
+⑧ Bedrock이 결과를 자연어로 변환 → 사용자에게 답변 반환
 ```
 
 **설계 포인트**
 
-- **SQL Validator**: LLM 인젝션 및 DDL/DML 원천 차단. SELECT 전용 쿼리만 RDS 실행
+- **SchemaRouter**: 모든 테이블 Schema를 매번 주입하는 대신, 질문 유형에 따라 필요한 Schema만 프롬프트에 전달. 빈출 질문은 규칙 기반으로 빠르게 처리하고, 판단이 애매한 질문만 LLM Router에 위임
+- **SQL Validator**: LLM 인젝션 및 DDL/DML 원천 차단. SELECT 전용 쿼리만 실행
 - **Caffeine Cache**: 대화 히스토리 유지 및 API 토큰 최적화
 - **Few-shot S3 격리**: '연승(W3)' 등 엣지케이스 대응을 위한 Few-shot 예시를 S3로 분리. 코드 수정 없이 동적 로드 구조로 배포 독립성 확보
 - **Schema 주입**: 테이블 구조 정보를 프롬프트에 포함하여 Text-to-SQL 변환 정확도 확보
+- **실행계획 기반 인덱스 최적화**: `EXPLAIN ANALYZE`로 실제 병목이 확인된 조회만 인덱스로 개선 (→ [7-2](#7-2-성능-최적화))
+
+> ⚠️ **SchemaRouter의 한계 (실측 로그 기반)**  
+> SchemaRouter는 프롬프트에 전달되는 Schema 범위를 좁혀 주는 **1차 가이드**입니다.  
+> 실제 로그에서 Router가 `[player, team]`을 선택했음에도 생성된 SQL이 `daily_player_hitter`를 사용한 사례가 있었으므로,  
+> "선택된 Schema만 사용하도록 완벽히 제한한다"고 보장하지 않으며, 최종 안전장치는 SQL Validator입니다.
 
 ---
 
-### 4-6. 팀 추천 파이프라인
+### 4-7. 팀 추천 파이프라인
 
 > **왜 이 구조인가?**  
 > 팀 추천은 ML 모델링이 아닌 **역대 25년치 팀 성적 데이터 + 사용자 가중치 기반 점수 매칭**입니다.  
 > S3 → Glue → Athena 서버리스 파이프라인으로 처리하여 인프라 비용을 최소화했습니다.
 
-![팀 추천 파이프라인](assets/Team_Recommendations.png)
+![팀 추천 파이프라인](assets/Dugout_Team_Recommendations.png)
 
 **파이프라인 실행 흐름**
 
 ```
 프론트 (6가지 질문 응답 + 가중치)
-    └─▶ Spring API
-            └─▶ Athena 쿼리 실행 (사용자 가중치 적용 점수 산출)
-                    └─▶ 상위 3개 팀 결과 반환
-                            └─▶ Bedrock AI 리포트 결합
-                                    └─▶ 추천 결과 + AI 리포트 → 프론트
+    └─▶ EC2 / Spring API
+            ① Spring → Athena          : 쿼리 실행 (사용자 가중치 적용 점수 산출)
+            ② Athena → Spring          : 팀 추천 분석 결과 (상위 3개 팀)
+            ③ Spring → Bedrock (Claude 3 Haiku) : 자연어 리포트 요청
+            ④ Bedrock → Spring         : 추천 설명 반환
+    └─▶ 추천 결과 + AI 리포트 → 프론트
 ```
+
+> Bedrock은 Athena를 직접 호출하지 않습니다. **Athena와 Bedrock 호출은 모두 Spring이 중계**합니다.
 
 **6가지 질문과 점수 설계**
 
@@ -377,7 +491,7 @@ A / B / C 3단계 **다중 클래스 분류 문제**로 설계, XGBoost Classifi
 **Athena 쿼리 — Partition Pruning 유도**
 
 "몇 년도부터 야구를 보기 시작하셨나요?" 질문은 단순 UX가 아닙니다.  
-선택한 연도가 `WHERE h.year >= :startYear` 조건으로 주입되어 **Partition Pruning**을 유도합니다.
+선택한 연도가 `WHERE h.year >= :startYear` 조건으로 주입되어, **year 기준 파티션**(`type=hitter/year=YYYY/`)에 대한 **Partition Pruning**을 유도합니다.
 
 ```
 불필요한 S3 데이터 스캔 감소 → Athena 쿼리 비용 절감 → 쿼리 성능 개선
@@ -466,100 +580,75 @@ com.dev.dugout
 
 ## 7. 기술적 의사결정 & 트러블슈팅
 
-### ✅ 왜 벡터 DB 대신 In-Memory RAG를 선택했나?
+> 📑 **빠른 이동**  
+> [7-1 아키텍처 선택 이유](#7-1-아키텍처-선택-이유) · [7-2 성능 최적화](#7-2-성능-최적화) · [7-3 트러블슈팅](#7-3-트러블슈팅) · [7-4 인프라 비용 최적화](#7-4-인프라-비용-최적화)
+
+### 7-1. 아키텍처 선택 이유
+
+#### ✅ 왜 벡터 DB 대신 In-Memory RAG를 선택했나?
 
 SHAP 기반 설명 데이터는 선수 ID로 1:1 조회되는 정형 JSON입니다.  
 임베딩 검색이 필요 없고, 추가 인프라 비용도 없으며, 응답 속도도 빠릅니다.  
 "기술을 위한 기술"이 아닌 **문제에 맞는 가장 단순한 구조**를 선택했습니다.
 
-### ✅ 왜 팀 추천에 ML 모델링을 하지 않았나?
+#### ✅ 왜 팀 추천에 ML 모델링을 하지 않았나?
 
 학습 레이블을 정의하기 어렵고, 취향 데이터 자체가 충분하지 않아  
 **규칙 기반 + 쿼리 매칭** 방식이 오히려 더 적합하다고 판단했습니다.
 
-### ✅ 왜 AWS Glue + Athena 조합을 선택했나?
+#### ✅ 왜 AWS Glue + Athena 조합을 선택했나?
 
 팀 추천 데이터는 매 요청마다 실시간 처리가 불필요합니다.  
-Spark 클러스터 없이 서버리스 ETL을 처리하고, S3 데이터를 SQL로 바로 조회하는 조합은  
+Spark 클러스터 없이 서버리스로 스키마·파티션 메타데이터를 관리(Glue Catalog)하고, S3 데이터를 SQL로 바로 조회(Athena)하는 조합은  
 **낮은 운영 비용과 단순한 구조** 두 가지를 동시에 만족합니다.
 
-### ✅ 왜 Step Functions를 오케스트레이션 도구로 선택했나?
+#### ✅ 왜 Step Functions를 오케스트레이션 도구로 선택했나?
 
 KBO 데이터는 경기 종료 후 업로드되는 구조라 배치 처리가 중심이었고,  
 핵심 기준은 선후 관계를 정밀하게 제어하면서도 인프라 비용을 최소화하는 것이었습니다.
 
-- **Kafka**: 데이터 이동만 담당, 흐름 제어 기능 없음
-- **MWAA**: 상시 구동 비용 + 환경 생성 20~30분 소요, 소용량 배치에 오버엔지니어링
-- **Glue ETL**: Spark 엔진 + 최소 DPU 기본 비용, 소용량 배치에 과스펙
-- **Step Functions**: 선후 관계를 상태 머신으로 정밀 제어하면서 실행 시에만 비용 발생 → 하루 한 번 실행 기준으로 **프리 티어 내 오케스트레이션 비용 0원**
-
-### ✅ Athena 스캔 비용 및 성능 최적화
-
-**CSV → Parquet 전환 및 Glue 카탈로그 재구성**
-- 스캔량 **43.4% 감소**, 실행시간 **23% 단축**
-
-**입문 연도 WHERE 주입으로 Partition Pruning 유도**
-- 팀 추천 풀스캔 발생 → 입문 연도 기반 조건 주입으로 스캔량 **64.6% 감소**
-
-### 🚨 Selenium → BeautifulSoup4 전환 — Lambda 패키지 경량화
-
-**문제 발생**
-Selenium Docker 이미지 사용 시 AWS Lambda 용량 제한(250MB) 초과.
-
-**원인 분석**
-네트워크 패킷 분석을 통해 드롭다운 동작이 동적 렌더링이 아닌 POST 요청 구조임을 확인.
-
-**해결**
-requests + BeautifulSoup4 구조로 전환 및 커스텀 Lambda Layer 직접 빌드로 패키지 경량화.  
-Selenium 대비 이미지 용량 대폭 감소, Lambda 250MB 제한 내 정상 실행.
-
-### 🚨 신규 선수 감지 — DB 정합성 문제
-
-**문제 발생**
-외국인 선수 교체 및 2군 콜업으로 인해 DB에 미등록된 신규 선수 성적 유입 시 파이프라인 적재 실패.
-
-**원인 분석**
-미등록 선수를 그대로 적재 시 FK 제약 위반 및 데이터 정합성 붕괴.
-
-**해결**
-예외 감지 시 `missing-player-scraper` Lambda 동적 호출 및 선적재 구조 구축.  
-수동 조치 없이 파이프라인 중단 없이 데이터 무결성 자동 유지.
-
-### 🚨 EC2 (t3.micro) OOM 발생 — Swap Memory 비용 최적화
-
-**문제 발생**
-서비스 운영 중 무작위 시점에 EC2 Java 프로세스가 강제 종료(`Killed`).  
-11시 파이프라인 가동 시 유입된 대량 데이터 작업의 잔재가 메모리에 남아있다가  
-OS 백그라운드 루틴이 추가 메모리 요구 시 OOM Killer에 의해 프로세스 종료.
-
-**해결 대안 및 의사결정**
-- 인스턴스 업그레이드: 즉시 해결되지만 프리 티어 초과, 비용 최적화 원칙 위배
-- **Swap Memory 2GB 구축**: 물리 RAM 권장 가이드라인(RAM의 2배)에 맞춰 `swapfile` 생성 및 자동 마운트 설정
-
-**결과**
-추가 인프라 비용 **0원**으로 서버 다운 장애 완전 해소. 24시간 안정적 배치 파이프라인 운영.
-
-### ✅ (2026.06.24) 인프라 비용 최적화 — RDS → Docker MySQL 이관
-
-**배경**  
-AWS RDS(db.t3.micro)는 최소 인스턴스라도 월 고정 비용이 발생.
-단일 EC2에서 Spring Boot + DB를 함께 운영하면 RDS 비용을 완전히 제거.
-
-**변경 사항**
-- AWS RDS 인스턴스 제거 → EC2 내부 Docker MySQL 8.0 컨테이너로 데이터 완전 이관
-- `spring.jpa.hibernate.ddl-auto=update` → `validate`로 변경 (스키마 자동 변경 방지, 데이터 보호)
-- GitHub Actions 배포 시 시크릿 인자에 따옴표 추가 (`&` 포함 JDBC URL의 쉘 파싱 오류 해결)
-- Docker MySQL 데이터는 `/home/ubuntu/mysql_data`에 호스트 볼륨 마운트로 영속성 보장
-
-**결과**  
-RDS 월 고정 비용 완전 제거. 기존 Lambda 적재 파이프라인 및 프론트엔드 API 응답 구조 변경 없음.
+| 후보 | 판단 |
+|------|------|
+| **Kafka** | 데이터 이동만 담당, 흐름 제어 기능 없음 |
+| **MWAA** | 상시 구동 비용 + 환경 생성 20~30분 소요, 소용량 배치에 오버엔지니어링 |
+| **Glue ETL** | Spark 엔진 + 최소 DPU 기본 비용, 소용량 배치에 과스펙 |
+| **Step Functions ✅** | 선후 관계를 상태 머신으로 정밀 제어하면서 실행 시에만 비용 발생 → 하루 한 번 실행 기준으로 **프리 티어 내 오케스트레이션 비용 0원** |
 
 ---
 
-### ✅ (2026.06.24) Caffeine 캐시 전략 도입 — DB 부하 최소화
+### 7-2. 성능 최적화
+
+#### ⚡ Athena 스캔 비용 및 성능 최적화 (2가지 별도 실험)
+
+| 실험 | 적용 내용 | 결과 |
+|------|-----------|------|
+| **① CSV → Parquet 전환** | 컬럼 기반 저장 포맷 전환 (변환은 `transformer-kbo` Lambda, 스키마·파티션 메타데이터는 Glue Catalog가 관리) | 스캔량 **43.4% 감소**, 실행시간 **23% 단축** |
+| **② Partition Pruning 유도** | 팀 추천 쿼리에 입문 연도(`WHERE year >= :startYear`) 조건 주입. 팀 추천 풀스캔 → year 파티션만 스캔 | 스캔량 **64.6% 감소** |
+
+- **Partition 설계**: 조회 패턴이 "N년도 이후" 범위 조회이므로 월/일이 아닌 **year 기준** 파티션 (`type=hitter/year=2003/`, `type=pitcher/year=2012/` · 2001~2025)
+- ⚠️ ①과 ②는 **각각 독립된 실험 결과**이며, 누적(43.4% 후 추가 64.6%)으로 해석하지 않습니다.
+
+#### ⚡ Text-to-SQL 실행계획 분석 & 인덱스 최적화
+
+> **핵심 원칙: 모든 컬럼에 인덱스를 걸지 않고, `EXPLAIN ANALYZE`에서 실제 병목이 확인된 지점만 개선한다.**
+
+**문제 확인**  
+`EXPLAIN ANALYZE`로 실행계획을 분석한 결과, 타자 테이블의 `MAX(h_g)` 조회가 **Full Scan (약 41,683행)** 으로 실행되고 있었습니다.
+
+**해결**
+- 타자: `idx_hitter_h_g` 추가
+- 투수: 동일한 조회 패턴에 대해 `idx_pitcher_p_g` 추가
+
+**결과**
+
+| 항목 | Before | After |
+|------|--------|-------|
+| `MAX(h_g)` 조회 | Full Scan (약 41,683행) · **18.5ms** | Index 활용 · **0.64ms** |
+
+#### ⚡ Caffeine 캐시 전략 — 반복 조회 DB 부하 완화 (2026.06.24)
 
 **배경**  
-야구 데이터는 하루 1회(경기 종료 후) 적재되며, 적재 사이에는 데이터가 변하지 않음.
+야구 데이터는 하루 1회(경기 종료 후) 적재되며, 적재 사이에는 데이터가 변하지 않음.  
 그러나 모든 API가 요청마다 DB를 조회하고 있어, 동일 데이터를 반복 쿼리하는 비효율이 존재.
 
 **적용 전략**
@@ -579,7 +668,93 @@ RDS 월 고정 비용 완전 제거. 기존 Lambda 적재 파이프라인 및 �
 - TTL 6시간: 안전빵. evict가 누락되더라도 최대 6시간 후 자동 갱신
 
 **결과**  
-적재 사이 구간에서 DB 쿼리 횟수를 약 90% 이상 절감. t3.small(2GB RAM) 환경에서 Docker MySQL + Spring + 캐시가 안정적으로 공존.
+적재 사이 반복 조회 구간에서 캐시 히트 시 DB 접근을 제거해 응답 경로를 단축하고 DB 부하를 완화. t3.small(2GB RAM) 환경에서 Docker MySQL + Spring + 캐시가 안정적으로 공존.
+
+---
+
+### 7-3. 트러블슈팅
+
+#### 🚨 Selenium → requests + BeautifulSoup4 전환 — 수집 Lambda 경량화
+
+**1) 초기 구성 — Selenium + Chromium Container Image**  
+Selenium + Chromium을 Container Image로 패키징한 Lambda는 **정상 동작**했습니다.  
+다만 다음 두 가지 부담이 있었습니다.
+- 브라우저(Chromium) 실행에 따른 **리소스 사용량 증가**
+- 코드 한 줄을 고쳐도 **전체 이미지를 재빌드·재배포**해야 하는 부담
+
+**2) 개선 시도 — Layer 분리 (실패)**  
+Chromium/Selenium을 Lambda Layer로 분리해 배포 부담을 줄이려 했으나,  
+**압축 해제 기준 250MB 제한을 초과**하여 실패했습니다.
+
+**3) 원인 분석 — DevTools Network 탭**  
+KBO 사이트의 드롭다운 동작이 브라우저 동적 렌더링에 의존하는 것이 아니라,  
+**ASP.NET PostBack 요청 구조**임을 네트워크 패킷 분석으로 확인했습니다.
+
+**4) 해결 — PostBack 직접 재현**  
+브라우저 없이 `requests`로 PostBack 요청을 재현하고 `BeautifulSoup4`로 파싱하는 구조로 전환했습니다.
+
+**5) 결과 (실측)**
+
+| 지표 | Selenium + Chromium | requests + BS4 | 개선 |
+|------|--------------------|----------------|------|
+| 실행 시간 | 98.56초 | **23.85초** | 약 **76%** 감소 |
+| 최대 메모리 사용량 (Lambda 실행 시) | 960MB | **233MB** | 약 **76%** 감소 |
+
+#### 🚨 신규 선수 감지 — DB 정합성 문제
+
+**문제 발생**  
+외국인 선수 교체 및 2군 콜업으로 인해 DB에 미등록된 신규 선수 성적 유입 시 파이프라인 적재 실패.
+
+**원인 분석**  
+미등록 선수를 그대로 적재 시 FK 제약 위반 및 데이터 정합성 붕괴.
+
+**해결**  
+예외 감지 시 `missing-player-scraper` Lambda 동적 호출 및 선적재 구조 구축.  
+수동 조치 없이 파이프라인 중단 없이 데이터 무결성 자동 유지.
+
+#### 🚨 EC2 (t2.micro) OOM 발생 — Swap Memory 비용 최적화
+
+**문제 발생**  
+서비스 운영 중 무작위 시점에 EC2의 Java 프로세스가 강제 종료(`Killed`).  
+메모리 사용량이 증가하는 상황에서 **OOM Killer가 Java 프로세스를 종료**한 것으로 확인.
+
+**해결 대안 및 의사결정**
+- 인스턴스 업그레이드: 즉시 해결되지만 프리 티어 초과, 비용 최적화 원칙 위배
+- **Swap Memory 2GB 구축**: 물리 RAM 권장 가이드라인(RAM의 2배)에 맞춰 `swapfile` 생성 및 자동 마운트 설정
+
+**결과**  
+추가 인프라 비용 **0원**으로 서버 다운 장애 완전 해소. 24시간 안정적 배치 파이프라인 운영.
+
+---
+
+### 7-4. 인프라 비용 최적화
+
+> 이 프로젝트에서 "비용"을 줄인 지점을 한곳에 모았습니다. 각 항목의 상세는 링크된 섹션에 있습니다.
+
+| 항목 | 비용 유형 | 접근 방식 | 근거 | 상세 |
+|------|-----------|-----------|------|------|
+| RDS → Docker MySQL 이관 | 월 **고정비** | RDS 제거, 단일 EC2에서 Spring + DB 통합 운영 | RDS 월 고정 비용 제거 | 아래 참고 |
+| Athena 스캔량 절감 | **종량(스캔 바이트) 과금** | CSV → Parquet 전환, year 파티션 기반 Partition Pruning | 스캔량 **43.4%** / **64.6%** 감소 (별도 실험) | [7-2](#7-2-성능-최적화) |
+| Step Functions 선택 | 오케스트레이션 **비용 회피** | 상시 구동·기본 비용이 있는 MWAA / Glue ETL 대신 선택 | 프리 티어 내 0원 | [7-1](#7-1-아키텍처-선택-이유) |
+| Swap 2GB 구성 | 업그레이드 **비용 회피** | OOM 대응 시 인스턴스 업그레이드 대신 swapfile (당시 기준) | 추가 인프라 비용 0원 | [7-3](#7-3-트러블슈팅) |
+
+> Athena는 **스캔한 바이트 기준으로 과금**되므로, 스캔량 감소는 곧 쿼리당 과금 기준의 감소입니다. 본 문서의 수치는 스캔량 기준이며, 청구 금액(원/달러)으로 환산한 값은 아닙니다.
+
+#### ✅ (2026.06.24) 인프라 비용 최적화 — RDS → Docker MySQL 이관
+
+**배경**  
+AWS RDS(db.t3.micro)는 최소 인스턴스라도 월 고정 비용이 발생.  
+단일 EC2에서 Spring Boot + DB를 함께 운영하면 RDS 비용을 완전히 제거할 수 있음.
+
+**변경 사항**
+- AWS RDS 인스턴스 제거 → **EC2 내부 Docker MySQL 8.0 컨테이너**로 데이터 완전 이관
+- `spring.jpa.hibernate.ddl-auto=update` → `validate`로 변경 (스키마 자동 변경 방지, 데이터 보호)
+- GitHub Actions 배포 시 시크릿 인자에 따옴표 추가 (`&` 포함 JDBC URL의 쉘 파싱 오류 해결)
+- Docker MySQL 데이터는 `/home/ubuntu/mysql_data`에 호스트 볼륨 마운트로 영속성 보장
+- 프리 티어 종료 후 EC2를 `t2.micro → t3.small`로 스케일업 (EC2 내부에 MySQL을 함께 운영하기 위함)
+
+**결과**  
+RDS 월 고정 비용 완전 제거. 기존 Lambda 적재 파이프라인(Spring REST API 경유) 및 프론트엔드 API 응답 구조 변경 없음.
 
 ---
 
@@ -592,8 +767,17 @@ RDS 월 고정 비용 완전 제거. 기존 Lambda 적재 파이프라인 및 �
 - 골든글러브 예측을 분류가 아닌 **랭킹 문제로 재정의**하여 서비스 목적에 맞는 모델을 선택한 것
 - 모델 검증 Lambda를 파이프라인에 통합하여 **운영 관점의 모니터링**까지 구현한 것
 
+### 이 프로젝트를 관통한 기술 선택 철학
+> **엔지니어링은 가장 좋은 기술을 쓰는 것이 아니라, 주어진 문제와 자원 안에서 최고 효율을 내는 것.**
+
+- 오케스트레이션: Step Functions vs MWAA / Glue / EMR — 하루 1회 소용량 배치라는 워크로드에 맞춰 상시 비용이 없는 구조를 선택
+- 인덱스: 모든 컬럼에 거는 대신 `EXPLAIN ANALYZE`에서 **실제 병목이 확인된 지점만** 최적화
+- 인프라: RDS 유지 대신 워크로드 규모에 맞게 EC2 내 Docker MySQL로 통합
+
 ### 아쉬운 점 / 개선 여지
 - 모델 성능 지표를 더 다양한 기준으로 검증하지 못한 부분
+- SchemaRouter가 선택한 Schema 밖의 테이블을 SQL이 참조한 사례가 있어, Router 결과와 생성 SQL 간 정합성 검증을 강화할 여지
+- 선수 미래 성적 예측·FA 등급 예측은 1회성 추론 결과를 그대로 서비스하는 구조라, 골든글러브 예측처럼 배치 추론으로 지속 갱신하도록 더 깊이 설계하지 못한 점
 - 실시간성이 강화되면 Kinesis 등 스트리밍 파이프라인으로 확장 필요
 - 사용자 피드백 루프를 추가해 추천 모델을 지속 개선하는 구조로 발전 가능
 
