@@ -14,6 +14,19 @@
 
 ---
 
+### 🗺️ End-to-End 데이터 흐름
+
+<div align="center">
+<img src="assets/Dugout_end_to_end.png" alt="더그아웃 End-to-End 데이터 흐름" width="100%"/>
+</div>
+
+> **수집 → 저장 → 활용 → 서비스**  
+> KBO 공식 웹사이트의 데이터를 EventBridge + Step Functions가 매일 5개 수집 Lambda로 수집해 **S3 Bronze**(원천)에 저장하고,  
+> Transform Lambda가 정제·변환한 **S3 Silver**를 기반으로 분석(Glue/Athena), 예측·설명 생성(ML/GenAI), 서비스 적재·조회(Spring API)에 활용합니다.  
+> 각 구간의 상세 설계는 [4. 시스템 아키텍처](#4-시스템-아키텍처)에서 다룹니다.
+
+---
+
 ## 📌 목차
 
 1. [왜 이 프로젝트를 만들었나](#1-왜-이-프로젝트를-만들었나)
@@ -179,6 +192,7 @@ KBO 관련 데이터는 공식 홈페이지, 각종 커뮤니티, 뉴스 등 다
 
 ## 4. 시스템 아키텍처
 
+
 ### 4-1. 데이터 파이프라인 — 일별 크롤링 → DB
 
 > **왜 이 구조인가?**  
@@ -202,7 +216,7 @@ EventBridge (cron · 매일 23:00 KST)
             │       ├─ scraper-player-hitter (타자 성적)
             │       └─ scraper-pitcher       (투수 성적)
             │
-            └─▶ 정제 Lambda (transformer-kbo · Parquet 변환 → S3 Silver 저장)
+            └─▶ 정제 Lambda (transformer-kbo · S3 Bronze 원천 데이터 → Parquet 변환 → S3 Silver 저장)
                     │
                     ├─▶ [Branch A] 골든글러브 예측 갱신
                     │       ├─ ① feature-engineer  (S3 Silver → 피처 생성)
@@ -232,6 +246,7 @@ EventBridge (cron · 매일 23:00 KST)
 
 | 레이어 | 역할 |
 |--------|------|
+| **Bronze** | 5개 수집 Lambda가 수집한 **원천 데이터** 저장 |
 | **Silver** | `transformer-kbo`가 정제·Parquet 변환한 분석용 데이터. Glue Catalog가 스키마/파티션 메타데이터를 관리하고 Athena가 조회 |
 | **Gold** | ML **예측 결과 / SHAP / AI 리포트 보존용**. 서비스가 요청 시점에 Gold를 직접 읽어 서빙하지 않음 (**실제 서빙은 Service DB + Spring API**) |
 
