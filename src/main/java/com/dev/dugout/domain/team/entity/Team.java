@@ -26,5 +26,7 @@ public class Team {
     private String slogan; // 팀 슬로건
     @Column(name = "booking_url")
     private String bookingUrl; // 팀 별 티켓 구매 사이트
+    @Column(name = "championship_count")
+    private Integer championshipCount; // 한국시리즈 우승 횟수
 
 }

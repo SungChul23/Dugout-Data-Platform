@@ -1,6 +1,7 @@
 package com.dev.dugout.domain.postseason.controller;
 
 import com.dev.dugout.domain.postseason.dto.PostseasonBracketResponseDto;
+import com.dev.dugout.domain.postseason.dto.PostseasonTeamOverviewResponseDto;
 import com.dev.dugout.domain.postseason.dto.PostseasonTopPlayersResponseDto;
 import com.dev.dugout.domain.postseason.service.PostseasonService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,6 +54,25 @@ public class PostseasonController {
             @Parameter(description = "팀 고유 ID", example = "5")
             @PathVariable Long teamId) {
         return postseasonService.getTeamTopPlayers(teamId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @Operation(
+            summary = "구단 대시보드(구단 개요) 조회",
+            description = """
+                    슬로건, 우승 횟수, 홈구장, 정규시즌 주요 지표(승률/타율/ERA/홈런/홈·원정 성적)와 시즌 종합 요약을 반환합니다.
+
+                    - 시즌 종합 요약이 등록되지 않은 팀은 summary가 null로 반환됩니다.
+                    """
+    )
+    @ApiResponse(responseCode = "200", description = "구단 개요 반환 성공")
+    @ApiResponse(responseCode = "404", description = "존재하지 않는 팀 ID", content = @Content)
+    @GetMapping("/teams/{teamId}/overview")
+    public ResponseEntity<PostseasonTeamOverviewResponseDto> getTeamOverview(
+            @Parameter(description = "팀 고유 ID", example = "1")
+            @PathVariable Long teamId) {
+        return postseasonService.getTeamOverview(teamId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

@@ -5,11 +5,17 @@ import com.dev.dugout.domain.player.entity.DailyPlayerPitcher;
 import com.dev.dugout.domain.player.repository.HitterRepository;
 import com.dev.dugout.domain.player.repository.PitcherRepository;
 import com.dev.dugout.domain.postseason.dto.PostseasonBracketResponseDto;
+import com.dev.dugout.domain.postseason.dto.PostseasonTeamOverviewResponseDto;
 import com.dev.dugout.domain.postseason.dto.PostseasonTopPlayersResponseDto;
 import com.dev.dugout.domain.team.dto.TeamRankResponseDto;
 import com.dev.dugout.domain.team.entity.DailyTeamRanking;
+import com.dev.dugout.domain.team.entity.DailyTeamStats;
+import com.dev.dugout.domain.team.entity.Team;
+import com.dev.dugout.domain.team.entity.TeamSeasonSummary;
 import com.dev.dugout.domain.team.repository.DailyTeamRankingRepository;
+import com.dev.dugout.domain.team.repository.DailyTeamStatsRepository;
 import com.dev.dugout.domain.team.repository.TeamRepository;
+import com.dev.dugout.domain.team.repository.TeamSeasonSummaryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -20,6 +26,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,8 +38,11 @@ public class PostseasonService {
     private static final double MIN_PA_FOR_TOP_BATTER = 30;
     private static final double MIN_IP_FOR_TOP_PITCHER = 10;
     private static final int TOP_PLAYER_COUNT = 3;
+    private static final Pattern NUMBER = Pattern.compile("\\d+");
 
     private final DailyTeamRankingRepository dailyTeamRankingRepository;
+    private final DailyTeamStatsRepository dailyTeamStatsRepository;
+    private final TeamSeasonSummaryRepository teamSeasonSummaryRepository;
     private final TeamRepository teamRepository;
     private final HitterRepository hitterRepository;
     private final PitcherRepository pitcherRepository;
@@ -147,5 +158,63 @@ public class PostseasonService {
                         .so(p.getSo())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Cacheable(value = "postseasonTeamOverview", key = "#teamId")
+    public Optional<PostseasonTeamOverviewResponseDto> getTeamOverview(Long teamId) {
+        return teamRepository.findById(teamId).map(this::toTeamOverview);
+    }
+
+    private PostseasonTeamOverviewResponseDto toTeamOverview(Team team) {
+        Long teamId = team.getId();
+        LocalDate latestDate = dailyTeamRankingRepository.findMaxBaseDate().orElse(null);
+        DailyTeamRanking ranking = latestDate == null ? null
+                : dailyTeamRankingRepository.findByBaseDateAndTeamId(latestDate, teamId).orElse(null);
+        DailyTeamStats stats = dailyTeamStatsRepository.findFirstByTeamIdOrderByBaseDateDesc(teamId).orElse(null);
+
+        // 시즌은 최신 순위 데이터의 연도 기준 (요약도 같은 시즌으로 조회)
+        Integer season = latestDate != null ? latestDate.getYear() : null;
+        String summary = season == null ? null
+                : teamSeasonSummaryRepository.findByTeamIdAndSeason(teamId, season.longValue())
+                        .map(TeamSeasonSummary::getSummary)
+                        .orElse(null);
+
+        return PostseasonTeamOverviewResponseDto.builder()
+                .teamId(teamId)
+                .teamName(team.getName())
+                .slogan(team.getSlogan())
+                .stadiumName(team.getStadiumName())
+                .championshipCount(team.getChampionshipCount())
+                .season(season)
+                .teamRank(ranking != null ? ranking.getRank() : null)
+                .winRate(ranking != null ? ranking.getWinRate() : null)
+                .wins(ranking != null ? ranking.getWins() : null)
+                .losses(ranking != null ? ranking.getLosses() : null)
+                .draws(ranking != null ? ranking.getDraws() : null)
+                .teamAvg(stats != null ? stats.getAvgh1() : null)
+                .teamEra(stats != null ? stats.getErap1() : null)
+                .teamHr(stats != null ? stats.getHrh1() : null)
+                .homeRecord(ranking != null ? parseRecord(ranking.getHomeRecord()) : null)
+                .awayRecord(ranking != null ? parseRecord(ranking.getAwayRecord()) : null)
+                .summary(summary)
+                .build();
+    }
+
+    // KBO 순위표의 홈/원정 성적 문자열은 "승-무-패" 순서 (예: "42-0-30")
+    private PostseasonTeamOverviewResponseDto.RecordDto parseRecord(String record) {
+        if (record == null) return null;
+
+        List<Integer> numbers = new ArrayList<>();
+        Matcher matcher = NUMBER.matcher(record);
+        while (matcher.find()) {
+            numbers.add(Integer.parseInt(matcher.group()));
+        }
+        if (numbers.size() != 3) return null;
+
+        return PostseasonTeamOverviewResponseDto.RecordDto.builder()
+                .wins(numbers.get(0))
+                .draws(numbers.get(1))
+                .losses(numbers.get(2))
+                .build();
     }
 }

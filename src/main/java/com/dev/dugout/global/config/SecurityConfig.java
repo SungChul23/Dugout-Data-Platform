@@ -78,6 +78,7 @@ public class SecurityConfig {
                                 "/api/v1/notices", // 공지사항 관련
                                 "/api/v1/ingest/kbo/notify", // 데이터 적재 관련
                                 "/api/v1/ingest/ml/gg", // 골든글러브 예측 데이터 관련
+                                "/api/v1/ingest/postseason/summary", // 가을야구 시즌 요약 생성 관련
                                 "/api/v1/performance/**",// 팀별 순위 관련
                                 "/api/v1/leaderboard/**",// 지표별 top 5 리더보드 관련
                                 "/api/v1/postseason/**", // 가을야구 5강 브라켓 관련
