@@ -81,6 +81,7 @@ public class SecurityConfig {
                                 "/api/v1/performance/**",// 팀별 순위 관련
                                 "/api/v1/leaderboard/**",// 지표별 top 5 리더보드 관련
                                 "/api/v1/postseason/**", // 가을야구 5강 브라켓 관련
+                                "/api/v1/visits", "/api/v1/visits/**", // 메인 페이지 방문 수 관련
                                 "/api/v1/gg/**", // 골든글러브 예측 관련
                                 "/api/v1/chat" // 더그아웃 AI 챗봇 관련
                         ).permitAll()
