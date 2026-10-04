@@ -60,11 +60,7 @@ public class PostseasonController {
 
     @Operation(
             summary = "구단 대시보드(구단 개요) 조회",
-            description = """
-                    슬로건, 우승 횟수, 홈구장, 정규시즌 주요 지표(승률/타율/ERA/홈런/홈·원정 성적)와 시즌 종합 요약을 반환합니다.
-
-                    - 시즌 종합 요약이 등록되지 않은 팀은 summary가 null로 반환됩니다.
-                    """
+            description = "슬로건, 우승 횟수, 홈구장, 정규시즌 주요 지표(승률/타율/ERA/홈런/홈·원정 성적)를 반환합니다."
     )
     @ApiResponse(responseCode = "200", description = "구단 개요 반환 성공")
     @ApiResponse(responseCode = "404", description = "존재하지 않는 팀 ID", content = @Content)

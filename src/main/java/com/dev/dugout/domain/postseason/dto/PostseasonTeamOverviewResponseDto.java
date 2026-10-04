@@ -59,9 +59,6 @@ public class PostseasonTeamOverviewResponseDto {
     @Schema(description = "원정 경기 성적 (파싱 불가 시 null)")
     private RecordDto awayRecord;
 
-    @Schema(description = "정규시즌 성적 및 종합 요약 (미등록 시 null)")
-    private String summary;
-
     @Schema(description = "승/패/무 성적")
     @Builder
     @Getter

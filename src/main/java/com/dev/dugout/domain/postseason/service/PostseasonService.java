@@ -11,11 +11,9 @@ import com.dev.dugout.domain.team.dto.TeamRankResponseDto;
 import com.dev.dugout.domain.team.entity.DailyTeamRanking;
 import com.dev.dugout.domain.team.entity.DailyTeamStats;
 import com.dev.dugout.domain.team.entity.Team;
-import com.dev.dugout.domain.team.entity.TeamSeasonSummary;
 import com.dev.dugout.domain.team.repository.DailyTeamRankingRepository;
 import com.dev.dugout.domain.team.repository.DailyTeamStatsRepository;
 import com.dev.dugout.domain.team.repository.TeamRepository;
-import com.dev.dugout.domain.team.repository.TeamSeasonSummaryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -42,7 +40,6 @@ public class PostseasonService {
 
     private final DailyTeamRankingRepository dailyTeamRankingRepository;
     private final DailyTeamStatsRepository dailyTeamStatsRepository;
-    private final TeamSeasonSummaryRepository teamSeasonSummaryRepository;
     private final TeamRepository teamRepository;
     private final HitterRepository hitterRepository;
     private final PitcherRepository pitcherRepository;
@@ -172,12 +169,8 @@ public class PostseasonService {
                 : dailyTeamRankingRepository.findByBaseDateAndTeamId(latestDate, teamId).orElse(null);
         DailyTeamStats stats = dailyTeamStatsRepository.findFirstByTeamIdOrderByBaseDateDesc(teamId).orElse(null);
 
-        // 시즌은 최신 순위 데이터의 연도 기준 (요약도 같은 시즌으로 조회)
+        // 시즌은 최신 순위 데이터의 연도 기준
         Integer season = latestDate != null ? latestDate.getYear() : null;
-        String summary = season == null ? null
-                : teamSeasonSummaryRepository.findByTeamIdAndSeason(teamId, season.longValue())
-                        .map(TeamSeasonSummary::getSummary)
-                        .orElse(null);
 
         return PostseasonTeamOverviewResponseDto.builder()
                 .teamId(teamId)
@@ -196,7 +189,6 @@ public class PostseasonService {
                 .teamHr(stats != null ? stats.getHrh1() : null)
                 .homeRecord(ranking != null ? parseRecord(ranking.getHomeRecord()) : null)
                 .awayRecord(ranking != null ? parseRecord(ranking.getAwayRecord()) : null)
-                .summary(summary)
                 .build();
     }
 

@@ -1,7 +1,5 @@
 package com.dev.dugout.infrastructure.aws.controller;
 
-import com.dev.dugout.domain.postseason.dto.PostseasonSummaryGenerateResponseDto;
-import com.dev.dugout.domain.postseason.service.PostseasonSummaryService;
 import com.dev.dugout.infrastructure.aws.dto.GoldenGloveRequestDto;
 import com.dev.dugout.infrastructure.aws.dto.KboIngestRequest;
 import com.dev.dugout.infrastructure.aws.service.GGDataIngestService;
@@ -21,7 +19,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Tag(name = "AWS", description = "AWS Lambda → Spring 데이터 입고 API (내부 전용) — Bearer 시크릿 키 인증 필요")
@@ -38,7 +35,6 @@ public class KboIngestController {
 
     private final KBODataIngestService ingestService;
     private final GGDataIngestService ggDataIngestService;
-    private final PostseasonSummaryService postseasonSummaryService;
 
     @Value("${aws.lambda.secret-key}")
     private String lambdaSecretKey;
@@ -116,25 +112,5 @@ public class KboIngestController {
         ggDataIngestService.ingestPredictions(request);
 
         return ResponseEntity.ok("골든글러브 예측 데이터의 입고 요청이 수락되었습니다. " + request.getBaseDate());
-    }
-
-    @Operation(
-            summary = "가을야구 5강 시즌 종합 요약 생성",
-            description = """
-                    현재 5강 팀의 정규시즌 지표를 Bedrock에 전달해 시즌 종합 요약을 생성하고 team_season_summary에 저장합니다.
-                    재호출 시 기존 요약을 덮어쓰며, 생성에 실패한 팀은 기존 데이터를 유지합니다.
-                    """
-    )
-    @ApiResponse(responseCode = "200", description = "시즌 종합 요약 생성 및 저장 성공")
-    @PostMapping("/postseason/summary")
-    public ResponseEntity<List<PostseasonSummaryGenerateResponseDto>> generatePostseasonSummaries(
-            @org.springframework.web.bind.annotation.RequestHeader(value = "Authorization", required = false) String authHeader) {
-
-        if (isInvalidToken(authHeader)) {
-            log.warn(">>>> [API] 시즌 요약 생성 요청 인증 실패");
-            return ResponseEntity.status(401).build();
-        }
-
-        return ResponseEntity.ok(postseasonSummaryService.generateSummaries());
     }
 }
