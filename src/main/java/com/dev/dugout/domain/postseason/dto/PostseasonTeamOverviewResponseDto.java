@@ -53,6 +53,15 @@ public class PostseasonTeamOverviewResponseDto {
     @Schema(description = "팀 홈런", example = "185")
     private Integer teamHr;
 
+    @Schema(description = "팀 타율 10개 구단 내 순위 (높은 순, 동률은 같은 순위)", example = "3")
+    private Integer teamAvgRank;
+
+    @Schema(description = "팀 ERA 10개 구단 내 순위 (낮은 순, 동률은 같은 순위)", example = "2")
+    private Integer teamEraRank;
+
+    @Schema(description = "팀 홈런 10개 구단 내 순위 (많은 순, 동률은 같은 순위)", example = "1")
+    private Integer teamHrRank;
+
     @Schema(description = "홈 경기 성적 (파싱 불가 시 null)")
     private RecordDto homeRecord;
 

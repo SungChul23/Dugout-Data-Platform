@@ -68,7 +68,7 @@ public class PostseasonController {
 
     @Operation(
             summary = "구단 대시보드(구단 개요) 조회",
-            description = "슬로건, 우승 횟수, 홈구장, 정규시즌 주요 지표(승률/타율/ERA/홈런/홈·원정 성적)를 반환합니다."
+            description = "슬로건, 우승 횟수, 홈구장, 정규시즌 주요 지표(승률/타율/ERA/홈런/홈·원정 성적)와 타율/ERA/홈런의 10개 구단 내 순위를 반환합니다."
     )
     @ApiResponse(responseCode = "200", description = "구단 개요 반환 성공")
     @ApiResponse(responseCode = "404", description = "존재하지 않는 팀 ID", content = @Content)

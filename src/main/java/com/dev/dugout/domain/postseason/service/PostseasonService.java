@@ -25,7 +25,9 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -248,6 +250,9 @@ public class PostseasonService {
         DailyTeamRanking ranking = latestDate == null ? null
                 : dailyTeamRankingRepository.findByBaseDateAndTeamId(latestDate, teamId).orElse(null);
         DailyTeamStats stats = dailyTeamStatsRepository.findFirstByTeamIdOrderByBaseDateDesc(teamId).orElse(null);
+        // 10개 구단 내 순위 계산용: 같은 날짜의 전 구단 성적
+        List<DailyTeamStats> leagueStats = stats == null ? List.of()
+                : dailyTeamStatsRepository.findAllByBaseDate(stats.getBaseDate());
 
         // 시즌은 최신 순위 데이터의 연도 기준
         Integer season = latestDate != null ? latestDate.getYear() : null;
@@ -267,9 +272,26 @@ public class PostseasonService {
                 .teamAvg(stats != null ? stats.getAvgh1() : null)
                 .teamEra(stats != null ? stats.getErap1() : null)
                 .teamHr(stats != null ? stats.getHrh1() : null)
+                .teamAvgRank(stats != null ? leagueRank(leagueStats, stats, DailyTeamStats::getAvgh1, true) : null)
+                .teamEraRank(stats != null ? leagueRank(leagueStats, stats, DailyTeamStats::getErap1, false) : null)
+                .teamHrRank(stats != null ? leagueRank(leagueStats, stats, DailyTeamStats::getHrh1, true) : null)
                 .homeRecord(ranking != null ? parseRecord(ranking.getHomeRecord()) : null)
                 .awayRecord(ranking != null ? parseRecord(ranking.getAwayRecord()) : null)
                 .build();
+    }
+
+    // 리그 내 순위 = 나보다 좋은 기록을 가진 팀 수 + 1 (동률이면 같은 순위)
+    private <T extends Comparable<T>> Integer leagueRank(List<DailyTeamStats> leagueStats, DailyTeamStats target,
+                                                         Function<DailyTeamStats, T> metric, boolean higherIsBetter) {
+        T value = metric.apply(target);
+        if (value == null) return null;
+
+        long betterTeams = leagueStats.stream()
+                .map(metric)
+                .filter(Objects::nonNull)
+                .filter(other -> higherIsBetter ? other.compareTo(value) > 0 : other.compareTo(value) < 0)
+                .count();
+        return (int) betterTeams + 1;
     }
 
     // KBO 순위표의 홈/원정 성적 문자열은 "승-무-패" 순서 (예: "42-0-30")
