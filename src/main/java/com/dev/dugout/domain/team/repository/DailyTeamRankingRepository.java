@@ -20,6 +20,9 @@ public interface DailyTeamRankingRepository extends JpaRepository<DailyTeamRanki
     List<DailyTeamRanking> findByTeamIdAndBaseDateBetweenOrderByBaseDateAsc(
             Long teamId, LocalDate startDate, LocalDate endDate);
 
+    //특정 팀의 시즌 전체 순위 변동 추이 조회 (날짜 순으로 정렬, 가을야구 팀별 순위 그래프 전용)
+    List<DailyTeamRanking> findByTeamIdOrderByBaseDateAsc(Long teamId);
+
     //특정 날짜의 데이터 존재 여부 확인
     boolean existsByBaseDate(LocalDate baseDate);
 
