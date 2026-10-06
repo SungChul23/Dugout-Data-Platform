@@ -33,6 +33,7 @@ public class CacheConfig {
      * - postseasonTopPlayers: 팀별 주요 선수 TOP3 (6h, evict: /ingest/kbo/notify)
      * - postseasonTeamOverview: 가을야구 구단 개요 (6h, evict: /ingest/kbo/notify)
      * - postseasonRankTrend: 가을야구 팀별 주간 순위 변동 (6h, evict: /ingest/kbo/notify)
+     * - postseasonHotPlayers: 가을야구 5강 팀 최근 폼 (6h, evict: /ingest/kbo/notify)
      */
     @Bean
     public CacheManager cacheManager() {
@@ -47,7 +48,8 @@ public class CacheConfig {
                 "postseasonBracket",
                 "postseasonTopPlayers",
                 "postseasonTeamOverview",
-                "postseasonRankTrend"
+                "postseasonRankTrend",
+                "postseasonHotPlayers"
         );
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(6, TimeUnit.HOURS)

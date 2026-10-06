@@ -1,8 +1,10 @@
 package com.dev.dugout.domain.postseason.controller;
 
 import com.dev.dugout.domain.postseason.dto.PostseasonBracketResponseDto;
+import com.dev.dugout.domain.postseason.dto.PostseasonHotPlayersResponseDto;
 import com.dev.dugout.domain.postseason.dto.PostseasonTeamOverviewResponseDto;
 import com.dev.dugout.domain.postseason.dto.PostseasonTopPlayersResponseDto;
+import com.dev.dugout.domain.postseason.service.PostseasonHotPlayerService;
 import com.dev.dugout.domain.postseason.service.PostseasonService;
 import com.dev.dugout.domain.team.dto.TeamRankResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,7 +32,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostseasonController {
 
+    private static final int MIN_HOT_PLAYER_DAYS = 7;
+    private static final int MAX_HOT_PLAYER_DAYS = 30;
+
     private final PostseasonService postseasonService;
+    private final PostseasonHotPlayerService postseasonHotPlayerService;
 
     @Operation(
             summary = "가을야구 5강 브라켓 조회",
@@ -44,6 +51,25 @@ public class PostseasonController {
     @GetMapping("/bracket")
     public ResponseEntity<PostseasonBracketResponseDto> getBracket() {
         return ResponseEntity.ok(postseasonService.getBracket());
+    }
+
+    @Operation(
+            summary = "5강 팀 최근 폼(뜨거운 타자/투수) 조회",
+            description = """
+                    가을야구 진출 5개 팀 선수들의 최근 N일 성적을 기준으로 뜨거운 타자와 투수를 반환합니다.
+
+                    - 타자: 최근 N일 OPS 높은 순 5명 (N × 2 타석 이상)
+                    - 투수: 선발 3명 + 불펜 2명, 각 보직 내 최근 N일 ERA 낮은 순 (선발 N × 0.7이닝, 불펜 N × 0.3이닝 이상)
+                    - days는 7~30 범위로 보정됩니다.
+                    """
+    )
+    @ApiResponse(responseCode = "200", description = "최근 폼 반환 성공")
+    @GetMapping("/hot-players")
+    public ResponseEntity<PostseasonHotPlayersResponseDto> getHotPlayers(
+            @Parameter(description = "집계 기간(일)", example = "14")
+            @RequestParam(defaultValue = "14") int days) {
+        int clampedDays = Math.max(MIN_HOT_PLAYER_DAYS, Math.min(MAX_HOT_PLAYER_DAYS, days));
+        return ResponseEntity.ok(postseasonHotPlayerService.getHotPlayers(clampedDays));
     }
 
     @Operation(
